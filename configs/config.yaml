@@ -1,0 +1,13 @@
+seed: 2025
+tweedie_power: 1.5
+lines: [motor, buildings, contents]
+markets:
+  w1: {raw_dir: data/raw/w1}
+  w2: {raw_dir: data/raw/w2}
+validation:
+  train_years: [2021, 2022, 2023]
+  valid_years: [2024]
+assumptions:   # mirror logs/assumptions_register.md; human gate G3
+  trend_2025: {motor: null, buildings: null, contents: null}
+  development: {motor: null, buildings: null, contents: null}
+  large_loss_cap: {motor: null, buildings: null, contents: null}
