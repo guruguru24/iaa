@@ -10,10 +10,12 @@ Outcome: **Accepted** / **Modified** / **Rejected**. Impact: quality / efficienc
 | 3 | 2026-10-19 | Governance | Claude (Cowork) | Draft governance, review gates, EDA & validation checklists | docs/01–05, CLAUDE.md | Human review of each checklist | Pending review | Reliability | docs/ |
 
 | 4 | 2026-10-20 | EDA §1–2 | Claude Code | Day 1: schema/integrity checks and target reconstruction | src/data.py, src/target.py, tests/test_target.py; DQ1–DQ14 | Toy-case pytest (9 passed); claim-level vs row-level reconciliation diff 0.00 in all line×year cells; every DQ number from re-runnable query | Pending human review (G1) | Quality / reliability | outputs/reports/w1_target_reconciliation.csv |
+| 5 | 2026-10-20 | Target G1 | Claude Code | Re-check target definition against official data_description.md | AI's DQ2 inference (amounts gross of excess, from 13–27% claims below excess) contradicted by official text (paid net of excess) | Official text + closed paid == incurred 100% | **Rejected** (AI's earlier inference); target.py fixed, tests updated (14 passed) | Reliability | logs/data_quality_log.md DQ15 |
 
 ## Notable cases (for report/video)
 Record here the best examples where AI (a) found something the human missed, (b) was wrong and was caught,
 (c) saved significant time. Include before/after evidence.
 
-- 2026-10-20 (AI found): claims are gross of excess and train exposure is partly recorded in days (raw exposure sum +33–39%); using the raw exposure would have understated burning cost by ~26%. Evidence: DQ2, DQ7.
+- 2026-10-20 (AI wrong, caught): AI inferred claims were gross of excess from data patterns and subtracted excess; the official data description says paid is net of excess → double deduction caught before any modelling (DQ2 → DQ15). Lesson: check documentation before inferring definitions from data.
+- 2026-10-20 (AI found): train exposure is partly recorded in days (raw exposure sum +33–39%); using the raw exposure would have understated burning cost by ~26%. Evidence: DQ2, DQ7.
 - 

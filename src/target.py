@@ -4,10 +4,11 @@ Definition (docs/00): ultimate cost of claims with loss date in the row's period
 net of recoveries, excluding declined claims. Claims data gives paid/incurred *to date* only, so the
 row target built here is net *incurred to date*; development to ultimate is a separate step (gate G3).
 
-Verified W1 facts this module relies on (see logs/data_quality_log.md):
-- Row period is inclusive [period_start, period_end]; each claim matches at most one row.
-- Claim amounts are gross of excess (13–27% of non-declined claims are below the policy excess).
-- 'repudiated' = declined; those rows carry zero amounts. Closed claims have paid == incurred.
+Facts this module relies on (see logs/data_quality_log.md):
+- Official data description: paid_to_date is already NET of excess, incurred = paid + case estimate.
+  So excess is NOT subtracted by default (subtract_excess=False). DQ2's earlier "gross" reading was wrong.
+- Row period is inclusive [period_start, period_end]; each claim matches at most one row (verified W1).
+- 'repudiated' = declined; those rows carry zero amounts. Closed claims have paid == incurred (verified W1).
 """
 from __future__ import annotations
 
@@ -17,14 +18,12 @@ import pandas as pd
 DECLINED = {"repudiated"}
 
 
-def claim_net_amount(gross, excess, recoveries, floor_at_zero: bool = True):
-    """Per-claim net cost = (gross - excess)+ - recoveries, optionally floored at 0.
-
-    With the floor, this equals max(gross - excess - recoveries, 0), i.e. the order of applying
-    excess and recoveries does not matter.
-    """
-    gross = np.asarray(gross, float)
-    net = np.maximum(gross - np.asarray(excess, float), 0.0) - np.asarray(recoveries, float)
+def claim_net_amount(amount, recoveries, excess=0.0, subtract_excess: bool = False, floor_at_zero: bool = True):
+    """Per-claim net cost = amount - recoveries (- excess only if amounts were gross), optionally floored at 0."""
+    amount = np.asarray(amount, float)
+    if subtract_excess:
+        amount = np.maximum(amount - np.asarray(excess, float), 0.0)
+    net = amount - np.asarray(recoveries, float)
     return np.maximum(net, 0.0) if floor_at_zero else net
 
 
@@ -43,27 +42,28 @@ def match_claims_to_rows(claims: pd.DataFrame, rows: pd.DataFrame) -> pd.DataFra
 
 
 def claim_level_net(claims_matched: pd.DataFrame, amount: str = "incurred_to_date",
-                    floor_at_zero: bool = True) -> pd.DataFrame:
-    """Add excess, gross and net columns; declined claims get net 0 and is_counted False."""
+                    subtract_excess: bool = False, floor_at_zero: bool = True) -> pd.DataFrame:
+    """Add excess, amount (before recoveries) and net columns; declined claims get net 0 and is_counted False."""
     c = claims_matched.copy()
     c["excess"] = c["voluntary_excess"].fillna(0) + c["compulsory_excess"].fillna(0)
     c["declined"] = c["status"].isin(DECLINED)
-    c["gross"] = np.where(c["declined"], 0.0, c[amount])
-    c["net"] = np.where(c["declined"], 0.0, claim_net_amount(c[amount], c["excess"], c["recoveries"], floor_at_zero))
+    c["amount"] = np.where(c["declined"], 0.0, c[amount])
+    c["net"] = np.where(c["declined"], 0.0,
+                        claim_net_amount(c[amount], c["recoveries"], c["excess"], subtract_excess, floor_at_zero))
     c["in_period"] = c["row_id"].notna()
     c["is_counted"] = c["in_period"] & ~c["declined"] & (c["net"] > 0)
     return c
 
 
 def build_row_target(rows: pd.DataFrame, claims: pd.DataFrame, amount: str = "incurred_to_date",
-                     floor_at_zero: bool = True) -> pd.DataFrame:
-    """Row-level target columns: target_net, n_claims_net (>0 net), gross, open-claim share."""
-    c = claim_level_net(match_claims_to_rows(claims, rows), amount, floor_at_zero)
+                     subtract_excess: bool = False, floor_at_zero: bool = True) -> pd.DataFrame:
+    """Row-level target columns: target_net, amount before recoveries, open-claim net, claim counts."""
+    c = claim_level_net(match_claims_to_rows(claims, rows), amount, subtract_excess, floor_at_zero)
     c = c[c["in_period"]]
     c["open_net"] = np.where(c["status"] == "open", c["net"], 0.0)
     agg = c.groupby("row_id").agg(
         target_net=("net", "sum"),
-        gross_incurred=("gross", "sum"),
+        amount_before_recoveries=("amount", "sum"),
         open_net=("open_net", "sum"),
         n_claims_net=("is_counted", "sum"),
         n_claims_reported=("claim_id", "size"),

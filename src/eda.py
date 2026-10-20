@@ -169,19 +169,18 @@ def sec_target(market: str, frames: dict) -> dict[str, pd.DataFrame]:
                         "n_paid_gt_incurred": int((g["paid_to_date"] > g["incurred_to_date"] + 1e-6).sum()),
                         "n_recov_gt_paid": int((g["recoveries"] > g["paid_to_date"] + 1e-6).sum())})
     out["amounts_by_status"] = pd.DataFrame(amounts)
-    match, recon = [], []
+    match, recon, excess = [], [], []
     for line in LINES:
         rows, c = frames[line], frames[f"claims_{line}"]
         first_last = rows.groupby("policy_id").agg(first=("period_start", "min"), last=("period_end", "max"))
         un = c[~c["in_period"]].join(first_last, on="policy_id")
         nd = c[c["in_period"] & ~c["declined"]]
-        unfloored = np.maximum(nd["gross"] - nd["excess"], 0) - nd["recoveries"]
+        unfloored = nd["amount"] - nd["recoveries"]
         match.append({"line": line, "claims": len(c), "policy_not_found": int(un["first"].isna().sum()),
                       "out_of_period": int((~c["in_period"]).sum()),
                       "before_first_row": int((un["loss_date"] < un["first"]).sum()),
                       "after_last_row": int((un["loss_date"] > un["last"]).sum()),
-                      "out_of_period_gross": un["incurred_to_date"].sum(),
-                      "share_below_excess": (nd["gross"] < nd["excess"]).mean(),
+                      "out_of_period_incurred": un["incurred_to_date"].sum(),
                       "n_negative_before_floor": int((unfloored < 0).sum()),
                       "floor_effect_on_net": nd["net"].sum() - unfloored.sum()})
         a = c[c["in_period"]].groupby("policy_year")["net"].sum()
@@ -189,12 +188,18 @@ def sec_target(market: str, frames: dict) -> dict[str, pd.DataFrame]:
         for y in b.index:
             ok = nd[nd["policy_year"] == y]
             recon.append({"line": line, "policy_year": y, "claim_level_net": a.get(y, 0.0), "row_level_net": b[y],
-                          "diff": a.get(y, 0.0) - b[y], "gross_incurred": ok["gross"].sum(),
-                          "excess_removed": (ok["gross"] - np.maximum(ok["gross"] - ok["excess"], 0)).sum(),
+                          "diff": a.get(y, 0.0) - b[y], "incurred_before_recoveries": ok["amount"].sum(),
                           "recoveries": ok["recoveries"].sum(),
                           "open_share_of_net": ok.loc[ok["status"] == "open", "net"].sum() / ok["net"].sum()})
+        # Net-of-excess check: if amounts are net, higher excess -> lower frequency and lower amounts per claim.
+        expo = rows.assign(excess=rows["voluntary_excess"] + rows["compulsory_excess"]).groupby("excess")["exposure_used"].sum()
+        closed = nd[nd["status"] == "closed"]
+        g = closed.groupby("excess")["amount"].describe(percentiles=[.01, .05, .5])
+        g["frequency_all_reported"] = nd.groupby("excess").size() / expo
+        excess.append(g.reset_index().assign(line=line))
     out["claim_matching"] = pd.DataFrame(match)
     out["reconciliation"] = pd.DataFrame(recon)
+    out["excess_check"] = pd.concat(excess, ignore_index=True)
     return out
 
 
@@ -284,7 +289,7 @@ def sec_dev(market: str, frames: dict, mature_years=(2021, 2022)) -> dict[str, p
         cf = frames[f"claims_{line}"]
         cf = cf[cf["in_period"] & ~cf["declined"]]
         g = cf.groupby(["policy_year", "peril"]).agg(n=("claim_id", "size"), n_open=("status", lambda s: (s == "open").sum()),
-                                                     paid=("paid_to_date", "sum"), incurred=("gross", "sum"), net=("net", "sum"))
+                                                     paid=("paid_to_date", "sum"), incurred=("amount", "sum"), net=("net", "sum"))
         g["paid_to_incurred"] = g["paid"] / g["incurred"]
         g["open_share_count"] = g["n_open"] / g["n"]
         maturity.append(g.reset_index().assign(line=line))
@@ -301,7 +306,7 @@ def sec_oneway(market: str, frames: dict, n_bins: int = 10) -> dict[str, pd.Data
         df = frames[line].merge(addr, on="address_id", how="left", suffixes=("", "_addr"))
         df = df.merge(cust, on="customer_id", how="left", suffixes=("", "_cust"))
         factors = [c for c in df.columns if c not in NON_FACTOR_COLS and c not in
-                   ("target_net", "gross_incurred", "open_net", "n_claims_net", "n_claims_reported", "date_of_birth")]
+                   ("target_net", "amount_before_recoveries", "open_net", "n_claims_net", "n_claims_reported", "date_of_birth")]
         out[f"oneway_{line}"] = pd.concat([one_way(df, f, n_bins) for f in factors], ignore_index=True)
     return out
 

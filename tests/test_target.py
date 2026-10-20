@@ -36,15 +36,19 @@ def _claims():
     })
 
 
-def test_claim_net_amount_floor_and_order():
-    assert claim_net_amount([1000], [500], [0]).tolist() == [500]
-    assert claim_net_amount([300], [500], [0]).tolist() == [0]
-    # recovery bigger than post-excess amount -> floored at 0, unfloored negative
-    assert claim_net_amount([1000], [500], [800]).tolist() == [0]
-    assert claim_net_amount([1000], [500], [800], floor_at_zero=False).tolist() == [-300]
-    # with floor: identical to max(g - e - r, 0)
+def test_claim_net_amount_default_does_not_subtract_excess():
+    # official description: amounts already net of excess -> only recoveries are removed
+    assert claim_net_amount([1000], [0], excess=[500]).tolist() == [1000]
+    assert claim_net_amount([1000], [800], excess=[500]).tolist() == [200]
+    assert claim_net_amount([1000], [1200]).tolist() == [0]
+    assert claim_net_amount([1000], [1200], floor_at_zero=False).tolist() == [-200]
+
+
+def test_claim_net_amount_gross_option():
+    # alternative reading (amounts gross of excess), kept for sensitivity only
+    assert claim_net_amount([300], [0], [500], subtract_excess=True).tolist() == [0]
     g, e, r = np.random.default_rng(0).uniform(0, 3000, (3, 500))
-    np.testing.assert_allclose(claim_net_amount(g, e, r), np.maximum(g - e - r, 0))
+    np.testing.assert_allclose(claim_net_amount(g, r, e, subtract_excess=True), np.maximum(g - e - r, 0))
 
 
 def test_match_inclusive_period_and_out_of_period():
@@ -56,13 +60,16 @@ def test_match_inclusive_period_and_out_of_period():
 
 def test_build_row_target_toy_case():
     t = build_row_target(_rows(), _claims()).set_index("row_id")
-    assert t.loc["M1", "target_net"] == pytest.approx(1000.0)   # 1500 - 500
-    assert t.loc["M2", "target_net"] == pytest.approx(300.0)    # open 800 - 500; c4 declined; c3 out of period
-    assert t.loc["M2", "open_net"] == pytest.approx(300.0)
-    assert t.loc["M3", "target_net"] == pytest.approx(50.0)     # c5 below excess=0, c6 2000-350-1600=50
-    assert t.loc["M3", "n_claims_net"] == 1
+    assert t.loc["M1", "target_net"] == pytest.approx(1500.0)   # amounts already net of excess
+    assert t.loc["M2", "target_net"] == pytest.approx(800.0)    # open 800; c4 declined; c3 out of period
+    assert t.loc["M2", "open_net"] == pytest.approx(800.0)
+    assert t.loc["M3", "target_net"] == pytest.approx(700.0)    # c5 300 + c6 2000-1600
+    assert t.loc["M3", "n_claims_net"] == 2
     assert t.loc["M3", "n_claims_reported"] == 2
     assert (t["target_net"] >= 0).all()
+    g = build_row_target(_rows(), _claims(), subtract_excess=True).set_index("row_id")
+    assert g.loc["M1", "target_net"] == pytest.approx(1000.0)   # sensitivity: 1500 - 500
+    assert g.loc["M3", "target_net"] == pytest.approx(50.0)     # c5 below excess, c6 2000-350-1600
 
 
 def test_overlapping_rows_raise():
