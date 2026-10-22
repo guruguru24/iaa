@@ -46,6 +46,9 @@ def test_design_matrix_shapes():
     X, names = design_matrix(df, ["f"])
     assert names == ["year=2022", "year=2023", "f_b"]
     assert X.shape == (4, 3) and X.sum() == 3
+    # a factor with a single level in the subset contributes no columns instead of failing
+    X1, names1 = design_matrix(df.assign(g="only"), ["f", "g"])
+    assert names1 == names and X1.shape == (4, 3)
 
 
 def test_year_effects_recover_trend_under_mix_shift():

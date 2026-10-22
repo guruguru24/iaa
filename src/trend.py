@@ -34,6 +34,8 @@ def design_matrix(df: pd.DataFrame, factors, year_col: str = "policy_year", base
         lv = band(df[f], n_bins)
         dummies = pd.get_dummies(lv, prefix=f, sparse=True, dtype=float)
         dummies = dummies.drop(columns=f"{f}_{lv.value_counts().idxmax()}")
+        if dummies.shape[1] == 0:  # single level in this subset (e.g. cover_type within own_damage claims)
+            continue
         blocks.append(sp.csr_matrix(dummies.sparse.to_coo()))
         names += list(dummies.columns)
     return sp.hstack(blocks).tocsr(), names
