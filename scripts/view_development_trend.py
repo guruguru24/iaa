@@ -49,8 +49,9 @@ for line in LINES:
     fe = year_effects(rows, factors, "freq", "exposure_used", "poisson").set_index("policy_year")
     fe = fe.mul(cnt / cnt.loc[2021], axis=0)  # count-developed
 
-    c = cf[cf["in_period"] & ~cf["declined"] & (cf["net"] > 0)].merge(
-        rows[["row_id"] + [f for f in factors if f != "policy_year"]], on="row_id")
+    # keep only claim keys/amounts: claim_frame also carries the row's excess columns, which would clash on merge
+    c = cf.loc[cf["in_period"] & ~cf["declined"] & (cf["net"] > 0), ["claim_id", "row_id", "policy_year", "net"]].merge(
+        rows[["row_id"] + factors], on="row_id")
     c["sev_cap"] = c["net"].clip(upper=CAPS[line])
     se = year_effects(c, factors, "sev_cap", None, "gamma").set_index("policy_year")
     be = year_effects(rows, factors, "pp", "exposure_used", "tweedie").set_index("policy_year")
