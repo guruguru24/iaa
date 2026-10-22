@@ -19,7 +19,7 @@ assumptions:   # mirror logs/assumptions_register.md; human gate G3 (approved 20
     expected_severity:       # Bornhuetter-Ferguson style override for immature BI
       - {line: motor, peril: bodily_injury, years: [2023, 2024], base_years: [2021, 2022],
          trend: {low: 0.0, central: 0.03, high: 0.05}}
-  large_loss_cap: {motor: 100000, buildings: 100000, contents: 25000}   # A3 interim (decision #8); grid pending
-  large_loss_sensitivity:   # decision #6: CL30973963 incurred 11,894,276.93 -> /10 typo hypothesis
+  large_loss_cap: {motor: 100000, buildings: 100000, contents: 25000}   # A3 final (decision #9)
+  large_loss_sensitivity:   # decisions #6/#9: sensitivity only; central keeps 11,894,276.93
     CL30973963: 1189427.69
   weather_mode: same_year   # A8 interim (decision #8); long_run = sensitivity
