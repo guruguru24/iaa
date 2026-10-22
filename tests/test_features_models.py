@@ -161,3 +161,22 @@ def test_lgbm_time_stop_refits_on_all_rows():
     assert m.predict(df).sum() == pytest.approx(df["target"].sum(), rel=1e-9)   # balance on all rows
     p = m.predict(df.head(5))
     assert np.all(np.isfinite(p)) and np.all(p > 0)
+
+
+def test_experience_modifier():
+    from src.models import ExperienceModifier
+    rng = np.random.default_rng(0)
+    n = 40_000
+    hist = rng.choice([0, 1, 2], n, p=[0.8, 0.15, 0.05]).astype(float)
+    hist[:2000] = np.nan                                       # history not observable
+    risk = np.where(np.isnan(hist), 1.0, 1.0 + 0.5 * np.nan_to_num(hist))
+    y = rng.poisson(0.1 * risk) * 1000.0
+    df = pd.DataFrame({"hist_claims_1y": hist})
+    pred = np.full(n, 100.0)                                   # base ignores history
+    mod = ExperienceModifier(k=50).fit(df, y, pred)
+    assert mod.factors_[0] < 1 < mod.factors_[1] < mod.factors_[2]
+    adj = mod.apply(df, pred)
+    obs = ~np.isnan(hist)
+    assert adj[obs].sum() == pytest.approx(pred[obs].sum())   # level unchanged on fitted rows
+    assert (adj[~obs] == 100.0).all()                         # unknown history -> 1.0
+    assert evaluate(y, adj)["d2"] > evaluate(y, pred)["d2"]

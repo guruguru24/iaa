@@ -61,7 +61,7 @@ def add_features(df: pd.DataFrame, line: str, addresses: pd.DataFrame, customers
 
 def feature_columns(df: pd.DataFrame, extra_exclude=()) -> list[str]:
     drop = set(ID_COLS + ALWAYS_EXCLUDE + LOW_RATIONALE + ["policy_year", "customer_since_year", "year_built"]) | set(extra_exclude)
-    target_like = {c for c in df.columns if c.startswith(("target", "n_claims", "open_net", "amount_before", "exposure_"))}
+    target_like = {c for c in df.columns if c.startswith(("target", "n_claims", "open_net", "amount_before", "exposure_", "hist_all_"))}
     return [c for c in df.columns if c not in drop and c not in target_like]
 
 

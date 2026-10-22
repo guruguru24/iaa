@@ -118,3 +118,38 @@ class LGBMTweedie:
 
     def predict(self, df: pd.DataFrame, exposure: str = "exposure") -> np.ndarray:
         return self._raw(df, exposure) * self.loading_
+
+
+class ExperienceModifier:
+    """Bonus-malus style multiplier on a base prediction by claims in the last year (experience rating).
+
+    Fitted on rows whose look-back window is observable: factor_k = Z_k * (A/E_k / A/E_all) + (1 - Z_k), with
+    credibility Z_k = n_k / (n_k + k) on the bucket's rows-with-claim count; then rescaled so the base total on those
+    rows is unchanged. Rows with unobservable history (NaN) get 1.0.
+    """
+
+    def __init__(self, col: str = "hist_claims_1y", max_bucket: int = 3, k: float = 200.0):
+        self.col, self.max_bucket, self.k = col, max_bucket, k
+
+    def _bucket(self, df: pd.DataFrame) -> pd.Series:
+        return df[self.col].clip(upper=self.max_bucket).fillna(-1).astype(int)
+
+    def fit(self, df: pd.DataFrame, actual, pred):
+        b = self._bucket(df).to_numpy()
+        actual, pred = np.asarray(actual, float), np.asarray(pred, float)
+        obs = b >= 0
+        overall = actual[obs].sum() / pred[obs].sum()
+        self.factors_ = {}
+        for k in sorted(set(b[obs])):
+            m = b == k
+            n = (actual[m] > 0).sum()
+            z = n / (n + self.k)
+            self.factors_[k] = z * (actual[m].sum() / pred[m].sum() / overall) + (1 - z)
+        f = pd.Series(b[obs]).map(self.factors_).to_numpy()
+        scale = pred[obs].sum() / (pred[obs] * f).sum()
+        self.factors_ = {k: v * scale for k, v in self.factors_.items()}
+        return self
+
+    def apply(self, df: pd.DataFrame, pred) -> np.ndarray:
+        f = self._bucket(df).map(self.factors_).fillna(1.0).to_numpy()
+        return np.asarray(pred, float) * f

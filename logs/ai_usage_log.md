@@ -16,11 +16,13 @@ Outcome: **Accepted** / **Modified** / **Rejected**. Impact: quality / efficienc
 | 8 | 2026-10-22 | Models (rung 4) | Claude Code | LightGBM Tweedie vs GLM | First GBM under-predicted level (validation A/E motor 1.06, bldg 1.26, cont 1.22) → D² below GLM though Gini similar; AI had not added a level balance step. Fix: training-total balance correction + tuning | Owner-run temporal validation; unit test (balanced total = training total) | **Modified** (AI omission caught by validation) | Reliability | outputs/reports/w1_validation_20261022_2240.csv |
 | 9 | 2026-10-23 | Diagnostics | Claude Code | Rolling-origin, level sensitivity, decile/segment A/E, GBM variants | Blend beats GLM in 8/9 folds (supports decision #10); D²-optimal level scale 0.96–1.03 (gain ≤0.0002) → upside is ranking not level; GBM slow/deep no gain; AI-suggested make_model in GBM worsened motor blend D² 0.0835→0.0798 (overfit, 44 trees) | Owner-run outputs/reports/w1_diagnostics_20261022_2356 | make_model **Rejected**; others Accepted | Challenge / quality | scripts/run_diagnostics.py |
 | 10 | 2026-10-23 | Model improvement | Claude Code | Recency weighting to fix segment drift (AI proposal) | Implemented + rolling test | Pre-registered acceptance rule applied before looking at results; failed (motor 2023 −0.0037) | **Rejected** | Challenge / reliability | outputs/reports/w1_recency_20261023_0105.csv |
+| 11 | 2026-10-23 | Features | Claude Code | Prior-claims history features (AI proposal) | v1 had a design flaw (unobservable history coded as 0) → 2023 fold worse; v2 uses fixed windows with NaN + experience modifier variant | Two-fold rule caught it; unit tests for NaN windows and reporting-date rule | v1 **Rejected**, v2 pending | Challenge / reliability | src/history.py, scripts/run_feature_test.py |
 
 ## Notable cases (for report/video)
 Record here the best examples where AI (a) found something the human missed, (b) was wrong and was caught,
 (c) saved significant time. Include before/after evidence.
 
+- 2026-10-23 (AI design flaw caught by validation): history v1 treated 'no observable history' (all 2021 rows) as 'no claims'; it improved 2024 but hurt 2023 in every line. Fixed in v2 (NaN for unobservable windows).
 - 2026-10-23 (governance worked): AI's recency-weighting idea looked good on 2024 alone for motor (+0.0016) but the pre-registered two-fold rule rejected it (2023: −0.0037) — avoided adopting noise.
 - 2026-10-23 (AI suggestion rejected by evidence): adding make_model (300 levels) to the GBM lowered motor validation D² (0.0835 → 0.0798).
 - 2026-10-23 (AI finding): level-sensitivity curve is flat around 1 (±5% level ≈ 0.001 D²) — the leaderboard gap is ranking, so trend/level probing on the leaderboard was deprioritised.
