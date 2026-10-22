@@ -47,7 +47,7 @@ for line in LINES:
     cnt = cfac[cfac["line"] == line].groupby("policy_year")[["reported", "est_ultimate"]].sum()
     cnt = cnt["est_ultimate"] / cnt["reported"]
     fe = year_effects(rows, factors, "freq", "exposure_used", "poisson").set_index("policy_year")
-    fe = fe.mul(cnt / cnt.loc[2021], axis=0)  # count-developed
+    fe = fe.mul((cnt / cnt.loc[2021]).reindex(fe.index), axis=0)  # count-developed (drops loss year 2020)
 
     # keep only claim keys/amounts: claim_frame also carries the row's excess columns, which would clash on merge
     c = cf.loc[cf["in_period"] & ~cf["declined"] & (cf["net"] > 0), ["claim_id", "row_id", "policy_year", "net"]].merge(
