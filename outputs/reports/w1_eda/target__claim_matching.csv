@@ -1,0 +1,4 @@
+line,claims,policy_not_found,out_of_period,before_first_row,after_last_row,out_of_period_incurred,n_negative_before_floor,floor_effect_on_net
+motor,112606,0,297,297,0,1193881.0899999999,0,0.0
+buildings,26442,0,67,67,0,430888.73,0,0.0
+contents,24102,0,50,50,0,162217.88,0,0.0

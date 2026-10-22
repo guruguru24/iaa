@@ -1,0 +1,4 @@
+status,n,paid,incurred,recoveries,share_paid_eq_incurred,n_paid_gt_incurred,n_recov_gt_paid
+closed,151292,656916934.8699999,656916934.8699999,27678633.34,1.0,0,0
+open,10147,26389725.2,116814194.22999999,0.0,0.006208731644821129,0,0
+repudiated,1711,0.0,0.0,0.0,1.0,0,0
