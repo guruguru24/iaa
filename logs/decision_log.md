@@ -17,4 +17,4 @@
 ## Submissions
 | Date | Market | File | Git hash | Validation D² (pooled) | Kaggle public score | Approved by |
 |---|---|---|---|---|---|---|
-| 2026-10-22 | w1 | outputs/submissions/w1_blend_20261022_2257_85bf3c8.csv (sha256 72be5f20f0b58db40dd18dbe632dd91394ebdeb7d8bf72e6078ead7efee8566a) | 85bf3c8 | 0.1388 (blend, train 2021–23 → valid 2024) | pending | S. Fujita |
+| 2026-10-22 | w1 | outputs/submissions/w1_blend_20261022_2257_85bf3c8.csv (sha256 72be5f20f0b58db40dd18dbe632dd91394ebdeb7d8bf72e6078ead7efee8566a) | 85bf3c8 | 0.1388 (blend, train 2021–23 → valid 2024) | 0.12293 (rank 32 at submission; top 0.12996) | S. Fujita |
