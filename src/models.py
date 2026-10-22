@@ -13,6 +13,15 @@ from sklearn.linear_model import TweedieRegressor
 from src.features import BandEncoder
 
 
+def fit_weights(df: pd.DataFrame, exposure: str = "exposure", recency: float | None = None,
+                ref_year: int | None = None) -> np.ndarray:
+    """Exposure weights, optionally decayed by age: exposure * recency ** (ref_year - policy_year)."""
+    w = df[exposure].to_numpy(dtype=float)
+    if recency is None or recency == 1.0:
+        return w
+    return w * recency ** (ref_year - df["policy_year"].to_numpy(dtype=float))
+
+
 class ConstantModel:
     def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure"):
         self.rate_ = df[target].sum() / df[exposure].sum()
@@ -26,12 +35,13 @@ class TweedieGLM:
     def __init__(self, factors, power: float = 1.5, alpha: float = 1e-4, n_bins: int = 10):
         self.factors, self.power, self.alpha, self.n_bins = list(factors), power, alpha, n_bins
 
-    def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure", loading_target: str | None = None):
+    def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure", loading_target: str | None = None,
+            recency: float | None = None, ref_year: int | None = None):
         self.enc_ = BandEncoder(self.n_bins).fit(df, self.factors)
         X = self.enc_.transform(df)
         w = df[exposure].to_numpy()
         self.glm_ = TweedieRegressor(power=self.power, link="log", alpha=self.alpha, solver="newton-cholesky", max_iter=200)
-        self.glm_.fit(X, df[target].to_numpy() / w, sample_weight=w)
+        self.glm_.fit(X, df[target].to_numpy() / w, sample_weight=fit_weights(df, exposure, recency, ref_year))
         self.train_balance_ = df[target].sum() / (self.glm_.predict(X) * w).sum()  # diagnostic only, not applied
         self.loading_ = 1.0 if loading_target is None else df[loading_target].sum() / df[target].sum()
         return self
@@ -66,7 +76,7 @@ class LGBMTweedie:
         return X
 
     def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure", loading_target: str | None = None,
-            group: str = "policy_id"):
+            group: str = "policy_id", recency: float | None = None, ref_year: int | None = None):
         import lightgbm as lgb
         self.cats_ = {}
         for c in self.factors:
@@ -76,6 +86,7 @@ class LGBMTweedie:
         X = self._X(df)
         w = df[exposure].to_numpy()
         y = df[target].to_numpy() / w
+        w = fit_weights(df, exposure, recency, ref_year)   # level is restored by the balance step below
         rng = np.random.default_rng(self.seed)
         groups = df[group].unique()
         hold = df[group].isin(rng.choice(groups, int(len(groups) * self.holdout), replace=False)).to_numpy()

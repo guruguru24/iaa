@@ -134,3 +134,19 @@ def test_segment_ae():
     out = segment_ae(df, "y", "p", "f").set_index("level")
     assert out.loc["a", "ae"] == 1.0 and out.loc["b", "ae"] == 1.5
     assert out["exposure_share"].sum() == pytest.approx(1.0)
+
+
+def test_recency_weights_shift_fit_towards_recent_years():
+    from src.models import fit_weights
+    df = pd.DataFrame({"policy_year": [2021, 2023], "exposure": [1.0, 2.0]})
+    assert fit_weights(df).tolist() == [1.0, 2.0]
+    assert fit_weights(df, recency=0.5, ref_year=2024).tolist() == [0.125, 1.0]
+    # segment b relativity drifts from 1x (2021) to 3x (2023): decayed fit sits closer to the recent value
+    rng = np.random.default_rng(1)
+    n = 30_000
+    d = pd.DataFrame({"policy_year": rng.choice([2021, 2022, 2023], n), "seg": rng.choice(["a", "b"], n), "exposure": 1.0})
+    rel = np.where(d.seg == "b", 1.0 + (d.policy_year - 2021), 1.0)
+    d["target"] = rng.poisson(0.2 * rel) * 100.0
+    flat = TweedieGLM(["seg"]).fit(d, "target").relativities()["seg=b"]
+    recent = TweedieGLM(["seg"]).fit(d, "target", recency=0.3, ref_year=2024).relativities()["seg=b"]
+    assert flat < recent and recent > 2.4
