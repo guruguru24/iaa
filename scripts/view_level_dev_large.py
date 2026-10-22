@@ -33,7 +33,7 @@ show("3. Mix by year (means)", mx[keep].round(2))
 
 ib = pd.read_csv(d + "dev__dev_ibnr_count.csv")
 show("4. IBNR count: reported vs estimated ultimate by loss year (lag CDF from 2021-22)",
-     ib.pivot_table(index="line", columns="loss_year", values="count_dev_factor").round(4))
+     ib.pivot_table(index=["line", "peril"], columns="loss_year", values="count_dev_factor").round(4))
 
 mt = pd.read_csv(d + "dev__dev_maturity.csv")
 agg = mt.groupby(["line", "policy_year"])[["n", "n_open", "paid", "incurred"]].sum()

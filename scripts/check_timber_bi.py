@@ -19,7 +19,7 @@ te = load_policies("buildings", kind="test")
 print(te["construction_type"].value_counts(dropna=False).to_string())
 
 print("\n=== a2. Timber (T 2021-22, W 2023-24) relative to brick within each year (same-year trend & maturity)")
-df = line_frame("buildings", "w1", claims)
+df = line_frame("buildings", "w1", claims, clean=False)
 u = df["construction_type"].str.upper()
 df["ct"] = u.replace({"T": "TIMBER", "W": "TIMBER"})
 t = burning_cost_table(df, ["policy_year", "ct"])

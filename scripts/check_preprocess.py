@@ -18,7 +18,7 @@ claims = load_claims("w1")
 
 print("=== 1. Exposure (DQ7): flagged rows and effect on burning cost")
 for line in ("motor", "buildings", "contents"):
-    df = line_frame(line, "w1", claims, exposure="raw")
+    df = line_frame(line, "w1", claims, exposure="raw", clean=False)
     df["exposure_dates"] = fix_exposure(df)["exposure"]
     fl = df.groupby("exposure_flag").agg(rows=("row_id", "size"), exposure_raw=("exposure", "sum"),
                                          exposure_dates=("exposure_dates", "sum"), net=("target_net", "sum"),
@@ -43,7 +43,7 @@ for line in ("buildings", "contents"):
         print("  rows between normal max and threshold (grey zone):", len(between))
 
 print("\n=== 3. Construction type (DQ11): what are 'W' and 'T'?")
-df = fix_construction_type(line_frame("buildings", "w1", claims))
+df = fix_construction_type(line_frame("buildings", "w1", claims, clean=False))
 df["raw_upper"] = df["construction_type_raw"].str.upper()
 t = burning_cost_table(df, "raw_upper")
 t["premium_per_exposure"] = t["premium"] / t["exposure"]

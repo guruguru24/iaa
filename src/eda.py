@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 from src.data import LINES, REPO, ROW_PREFIX, exposure_from_dates, flag_exposure, load_claims, load_policies, load_table
+from src.preprocess import fix_construction_type, fix_sum_insured, sum_insured_reference
 from src.target import build_row_target, claim_level_net, match_claims_to_rows
 
 ID_COLS = ["row_id", "policy_id", "customer_id", "address_id", "line"]
@@ -29,14 +30,22 @@ SECTIONS = ("integrity", "target", "exposure", "freqsev", "large", "dev", "onewa
 # ---------------------------------------------------------------- building blocks
 
 def line_frame(line: str, market: str = "w1", claims: pd.DataFrame | None = None,
-               exposure: str = "dates") -> pd.DataFrame:
-    """Train policy rows + row target + exposure columns. exposure='dates' -> (days+1)/365, 'raw' -> as supplied."""
+               exposure: str = "dates", clean: bool = True) -> pd.DataFrame:
+    """Train policy rows + row target + exposure columns. exposure='dates' -> (days+1)/365, 'raw' -> as supplied.
+
+    clean=True applies the approved G2 feature fixes (sum_insured, construction_type); exposure is handled by
+    `exposure` here so the raw value stays available. clean=False gives the raw fields (used by the G2 check scripts).
+    """
     p = load_policies(line, market)
     claims = load_claims(market) if claims is None else claims
     p["policy_year"] = p["period_start"].dt.year
     p["exposure_dates"] = exposure_from_dates(p["period_start"], p["period_end"])
     p["exposure_flag"] = flag_exposure(p)
     p["exposure_used"] = p["exposure_dates"] if exposure == "dates" else p["exposure"]
+    if clean and "sum_insured" in p:
+        p = fix_sum_insured(p, sum_insured_reference(p))
+    if clean and "construction_type" in p:
+        p = fix_construction_type(p)
     t = build_row_target(p, claims[claims["line"] == line])
     return p.join(t.drop(columns="row_id"))
 
@@ -285,7 +294,9 @@ def sec_dev(market: str, frames: dict, mature_years=(2021, 2022)) -> dict[str, p
     ibnr, maturity = [], []
     for line in LINES:
         c = claims[claims["line"] == line]
-        ibnr.append(ibnr_count_estimate(c, cutoff, mature_years).assign(line=line))
+        ibnr.append(ibnr_count_estimate(c, cutoff, mature_years).assign(line=line, peril="ALL"))
+        for peril, cp in c.groupby("peril"):  # slow-reporting perils (BI, subsidence) need their own factor
+            ibnr.append(ibnr_count_estimate(cp, cutoff, mature_years).assign(line=line, peril=peril))
         cf = frames[f"claims_{line}"]
         cf = cf[cf["in_period"] & ~cf["declined"]]
         g = cf.groupby(["policy_year", "peril"]).agg(n=("claim_id", "size"), n_open=("status", lambda s: (s == "open").sum()),
