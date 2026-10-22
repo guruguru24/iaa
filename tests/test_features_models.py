@@ -107,3 +107,11 @@ def test_lgbm_tweedie_basics():
     np.testing.assert_allclose(LGBMTweedie(["seg", "flag"], params={"min_child_samples": 50}, n_estimators=300).fit(tr, "target").predict(va), p)
     unseen = va.head(3).assign(seg="zzz")
     assert np.all(np.isfinite(m.predict(unseen)))
+
+
+def test_lgbm_balance_reproduces_training_total():
+    from src.models import LGBMTweedie
+    df = _toy(8000)
+    df["policy_id"] = np.arange(len(df)) % 2000
+    m = LGBMTweedie(["seg"], params={"min_child_samples": 50, "learning_rate": 0.01}, n_estimators=20).fit(df, "target")
+    assert m.predict(df).sum() == pytest.approx(df["target"].sum(), rel=1e-9)

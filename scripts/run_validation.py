@@ -34,6 +34,7 @@ ap.add_argument("--weather", default=None, choices=["same_year", "long_run"])
 ap.add_argument("--cap-grid", action="store_true")
 ap.add_argument("--gbm", action="store_true")
 ap.add_argument("--sensitivity", action="store_true")
+ap.add_argument("--no-glm-grid", action="store_true", help="skip uncapped GLM (faster GBM runs)")
 a = ap.parse_args()
 
 cfg = load_config()
@@ -60,7 +61,9 @@ for line in a.lines:
         targets = ["target_dev"] + [f"target_dev_cap{c}" for c in caps]
         tr[targets] = tr[targets].mul(onlevel_factor(tr["policy_year"], 2024, g), axis=0)
         y = va["target_dev"].to_numpy()
-        models = {"const": ConstantModel().fit(tr, "target_dev"), "glm_uncapped": TweedieGLM(factors).fit(tr, "target_dev")}
+        models = {"const": ConstantModel().fit(tr, "target_dev")}
+        if not a.no_glm_grid:
+            models["glm_uncapped"] = TweedieGLM(factors).fit(tr, "target_dev")
         for c in caps:
             models[f"glm_cap{c}"] = TweedieGLM(factors).fit(tr, f"target_dev_cap{c}", loading_target="target_dev")
         if a.gbm:
@@ -75,6 +78,7 @@ for line in a.lines:
             results.append({"line": line, "variant": vname, "weather": weather, "model": name,
                             "loading": getattr(m, "loading_", np.nan),
                             "gbm_trees": getattr(getattr(m, "model_", None), "best_iteration_", np.nan),
+                            "balance": getattr(m, "balance_", getattr(m, "train_balance_", np.nan)),
                             **evaluate(y, p)})
         print(f"[{line} / {vname} / {weather}] {len(factors)} factors, {time.time() - t0:.0f}s", flush=True)
         del tr, va
@@ -94,5 +98,5 @@ res = pd.DataFrame(results)
 out = REPO / "outputs" / "reports" / f"w1_validation_{datetime.now():%Y%m%d_%H%M}.csv"
 res.to_csv(out, index=False)
 pd.set_option("display.width", 220)
-print(res[["line", "variant", "model", "d2", "ae", "gini", "loading", "gbm_trees"]].round(4).to_string(index=False))
+print(res[["line", "variant", "model", "d2", "ae", "gini", "loading", "balance", "gbm_trees"]].round(4).to_string(index=False))
 print(f"saved {out.relative_to(REPO)}")

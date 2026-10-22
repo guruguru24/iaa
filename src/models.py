@@ -32,6 +32,7 @@ class TweedieGLM:
         w = df[exposure].to_numpy()
         self.glm_ = TweedieRegressor(power=self.power, link="log", alpha=self.alpha, solver="newton-cholesky", max_iter=200)
         self.glm_.fit(X, df[target].to_numpy() / w, sample_weight=w)
+        self.train_balance_ = df[target].sum() / (self.glm_.predict(X) * w).sum()  # diagnostic only, not applied
         self.loading_ = 1.0 if loading_target is None else df[loading_target].sum() / df[target].sum()
         return self
 
@@ -52,8 +53,9 @@ class LGBMTweedie:
     def __init__(self, factors, power: float = 1.5, seed: int = 2025, params: dict | None = None,
                  n_estimators: int = 3000, holdout: float = 0.1):
         self.factors, self.power, self.seed, self.n_estimators, self.holdout = list(factors), power, seed, n_estimators, holdout
-        self.params = {"learning_rate": 0.03, "num_leaves": 31, "min_child_samples": 500, "subsample": 0.8,
+        self.params = {"learning_rate": 0.05, "num_leaves": 31, "min_child_samples": 300, "subsample": 0.8,
                        "subsample_freq": 1, "colsample_bytree": 0.8, "reg_lambda": 1.0, "verbose": -1, **(params or {})}
+        self.patience = 300
 
     def _X(self, df: pd.DataFrame) -> pd.DataFrame:
         X = df[self.factors].copy()
@@ -80,9 +82,16 @@ class LGBMTweedie:
         self.model_ = lgb.LGBMRegressor(objective="tweedie", tweedie_variance_power=self.power,
                                         n_estimators=self.n_estimators, random_state=self.seed, **self.params)
         self.model_.fit(X[~hold], y[~hold], sample_weight=w[~hold], eval_X=(X[hold],), eval_y=(y[hold],),
-                        eval_sample_weight=[w[hold]], callbacks=[lgb.early_stopping(100, verbose=False)])
+                        eval_sample_weight=[w[hold]], callbacks=[lgb.early_stopping(self.patience, verbose=False)])
+        # balance correction: early-stopped boosting does not reproduce the training total; rescale so that
+        # predicted = actual on all training rows (level matters as much as ranking for D2)
+        self.balance_ = 1.0
+        self.balance_ = df[target].sum() / self._raw(df, exposure).sum()
         self.loading_ = 1.0 if loading_target is None else df[loading_target].sum() / df[target].sum()
         return self
 
+    def _raw(self, df: pd.DataFrame, exposure: str) -> np.ndarray:
+        return self.model_.predict(self._X(df), num_iteration=self.model_.best_iteration_) * df[exposure].to_numpy() * self.balance_
+
     def predict(self, df: pd.DataFrame, exposure: str = "exposure") -> np.ndarray:
-        return self.model_.predict(self._X(df), num_iteration=self.model_.best_iteration_) * df[exposure].to_numpy() * self.loading_
+        return self._raw(df, exposure) * self.loading_
