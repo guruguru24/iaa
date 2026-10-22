@@ -150,3 +150,14 @@ def test_recency_weights_shift_fit_towards_recent_years():
     flat = TweedieGLM(["seg"]).fit(d, "target").relativities()["seg=b"]
     recent = TweedieGLM(["seg"]).fit(d, "target", recency=0.3, ref_year=2024).relativities()["seg=b"]
     assert flat < recent and recent > 2.4
+
+
+def test_lgbm_time_stop_refits_on_all_rows():
+    from src.models import LGBMTweedie
+    df = _toy(8000)
+    df["policy_id"] = np.arange(len(df)) % 2000
+    m = LGBMTweedie(["seg"], params={"min_child_samples": 50}, n_estimators=200, stop="time").fit(df, "target")
+    assert m.n_trees_ >= 1 and m.model_.n_estimators == m.n_trees_      # refit without early stopping
+    assert m.predict(df).sum() == pytest.approx(df["target"].sum(), rel=1e-9)   # balance on all rows
+    p = m.predict(df.head(5))
+    assert np.all(np.isfinite(p)) and np.all(p > 0)

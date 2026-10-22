@@ -61,8 +61,11 @@ class LGBMTweedie:
     """
 
     def __init__(self, factors, power: float = 1.5, seed: int = 2025, params: dict | None = None,
-                 n_estimators: int = 3000, holdout: float = 0.1):
+                 n_estimators: int = 3000, holdout: float = 0.1, stop: str = "policy", refit_scale: float = 1.1):
+        """stop='policy': early stopping on a random 10% of policies; stop='time': on the last training year, then
+        refit on all training rows with best_iteration x refit_scale trees (no early stopping)."""
         self.factors, self.power, self.seed, self.n_estimators, self.holdout = list(factors), power, seed, n_estimators, holdout
+        self.stop, self.refit_scale = stop, refit_scale
         self.params = {"learning_rate": 0.05, "num_leaves": 31, "min_child_samples": 300, "subsample": 0.8,
                        "subsample_freq": 1, "colsample_bytree": 0.8, "reg_lambda": 1.0, "verbose": -1, **(params or {})}
         self.patience = 300
@@ -87,13 +90,22 @@ class LGBMTweedie:
         w = df[exposure].to_numpy()
         y = df[target].to_numpy() / w
         w = fit_weights(df, exposure, recency, ref_year)   # level is restored by the balance step below
-        rng = np.random.default_rng(self.seed)
-        groups = df[group].unique()
-        hold = df[group].isin(rng.choice(groups, int(len(groups) * self.holdout), replace=False)).to_numpy()
+        if self.stop == "time":
+            hold = (df["policy_year"] == df["policy_year"].max()).to_numpy()
+        else:
+            rng = np.random.default_rng(self.seed)
+            groups = df[group].unique()
+            hold = df[group].isin(rng.choice(groups, int(len(groups) * self.holdout), replace=False)).to_numpy()
         self.model_ = lgb.LGBMRegressor(objective="tweedie", tweedie_variance_power=self.power,
                                         n_estimators=self.n_estimators, random_state=self.seed, **self.params)
         self.model_.fit(X[~hold], y[~hold], sample_weight=w[~hold], eval_X=(X[hold],), eval_y=(y[hold],),
                         eval_sample_weight=[w[hold]], callbacks=[lgb.early_stopping(self.patience, verbose=False)])
+        self.n_trees_ = max(int(self.model_.best_iteration_ or self.n_estimators), 1)
+        if self.stop == "time":   # the last year steered the tree count; now learn from it too
+            self.n_trees_ = max(int(round(self.n_trees_ * self.refit_scale)), 1)
+            self.model_ = lgb.LGBMRegressor(objective="tweedie", tweedie_variance_power=self.power,
+                                            n_estimators=self.n_trees_, random_state=self.seed, **self.params)
+            self.model_.fit(X, y, sample_weight=w)
         # balance correction: early-stopped boosting does not reproduce the training total; rescale so that
         # predicted = actual on all training rows (level matters as much as ranking for D2)
         self.balance_ = 1.0
@@ -102,7 +114,7 @@ class LGBMTweedie:
         return self
 
     def _raw(self, df: pd.DataFrame, exposure: str) -> np.ndarray:
-        return self.model_.predict(self._X(df), num_iteration=self.model_.best_iteration_) * df[exposure].to_numpy() * self.balance_
+        return self.model_.predict(self._X(df), num_iteration=self.n_trees_) * df[exposure].to_numpy() * self.balance_
 
     def predict(self, df: pd.DataFrame, exposure: str = "exposure") -> np.ndarray:
         return self._raw(df, exposure) * self.loading_

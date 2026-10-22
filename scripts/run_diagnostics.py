@@ -107,7 +107,7 @@ for line in a.lines:
             p = m.fit(main_tr, capped, loading_target="target_dev").predict(main_va)
             for w in (0.5, 1.0):
                 pp = (1 - w) * main_va["p_glm"] + w * p
-                variants.append({"line": line, "variant": name, "w_gbm": w, "trees": m.model_.best_iteration_,
+                variants.append({"line": line, "variant": name, "w_gbm": w, "trees": m.n_trees_,
                                  "balance": m.balance_, **evaluate(y, pp)})
     print(f"[{line}] done ({time.time() - t0:.0f}s)", flush=True)
     del df, main_tr, main_va

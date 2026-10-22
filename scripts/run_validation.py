@@ -77,7 +77,7 @@ for line in a.lines:
             m = models.get(name)
             results.append({"line": line, "variant": vname, "weather": weather, "model": name,
                             "loading": getattr(m, "loading_", np.nan),
-                            "gbm_trees": getattr(getattr(m, "model_", None), "best_iteration_", np.nan),
+                            "gbm_trees": getattr(m, "n_trees_", np.nan),
                             "balance": getattr(m, "balance_", getattr(m, "train_balance_", np.nan)),
                             **evaluate(y, p)})
         print(f"[{line} / {vname} / {weather}] {len(factors)} factors, {time.time() - t0:.0f}s", flush=True)

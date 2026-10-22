@@ -33,7 +33,7 @@ def fit_predict(model: str, tr: pd.DataFrame, te: pd.DataFrame, factors, cap: in
         preds["glm"], info["glm_loading"] = m.predict(te), m.loading_
     if model in ("gbm", "blend"):
         m = LGBMTweedie(factors, seed=seed).fit(tr, capped, loading_target="target_dev")
-        preds["gbm"], info["gbm_loading"], info["gbm_trees"] = m.predict(te), m.loading_, m.model_.best_iteration_
+        preds["gbm"], info["gbm_loading"], info["gbm_trees"] = m.predict(te), m.loading_, m.n_trees_
     p = 0.5 * preds["glm"] + 0.5 * preds["gbm"] if model == "blend" else preds[model]
     return p, info
 
