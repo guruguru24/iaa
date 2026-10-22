@@ -68,3 +68,36 @@ def test_year_effects_recover_trend_under_mix_shift():
                       kind="poisson").set_index("policy_year")
     assert ef.index.tolist() == [2021, 2022, 2023]
     assert ef.loc[2023, "mix_adjusted"] == pytest.approx(e.loc[2023, "mix_adjusted"])
+
+
+def test_weighted_lag_cdf():
+    from src.eda import lag_cdf
+    F = lag_cdf([10, 400], weights=[100.0, 300.0])
+    assert F([5, 10, 399, 400]).tolist() == [0.0, 0.25, 0.25, 1.0]
+
+
+def test_cost_factor_exceeds_count_factor_when_late_claims_are_dearer():
+    from src.development import development_factors
+    D = pd.Timestamp
+    mature = pd.DataFrame({"claim_id": [f"m{i}" for i in range(4)], "line": "motor", "peril": "bodily_injury",
+                           "status": "closed", "loss_date": D("2021-01-01"),
+                           "report_date": [D("2021-01-11")] * 2 + [D("2022-02-05")] * 2,   # lags 10 and 400 days
+                           "incurred_to_date": [100.0, 100.0, 300.0, 300.0], "recoveries": 0.0})
+    recent = pd.DataFrame({"claim_id": ["r1"], "line": "motor", "peril": "bodily_injury", "status": "open",
+                           "loss_date": [D("2024-09-21")], "report_date": [D("2024-10-01")],
+                           "incurred_to_date": [100.0], "recoveries": [0.0]})
+    f = development_factors(pd.concat([mature, recent]), mature_years=[2021], cutoff=D("2024-12-30")).set_index("policy_year")
+    assert f.loc[2024, "count_dev_factor"] == pytest.approx(2.0)    # half the claims reported within 100 days
+    assert f.loc[2024, "cost_dev_factor"] == pytest.approx(4.0)     # only a quarter of the cost
+    assert f.loc[2021, "cost_dev_factor"] == pytest.approx(1.0)
+
+
+def test_expected_severity_override():
+    from src.development import expected_severity_override
+    d = pd.DataFrame({"line": "motor", "peril": "bodily_injury", "policy_year": [2021, 2022, 2023],
+                      "n": [10, 10, 5], "net": [200.0, 200.0, 2_100.0], "net_capped": [200.0, 200.0, 100.0],
+                      "count_dev_factor": [1.0, 1.0, 2.0], "ultimate": [200.0, 200.0, 2_100.0]})
+    out = expected_severity_override(d, "motor", "bodily_injury", [2023], [2021, 2022], trend=0.10).set_index("policy_year")
+    # base severity 400/20 = 20; 5 x 2.0 claims x 20 x 1.1^1.5 + excess over cap 2000
+    assert out.loc[2023, "ultimate"] == pytest.approx(10 * 20 * 1.1 ** 1.5 + 2_000)
+    assert out.loc[2021, "ultimate"] == 200.0

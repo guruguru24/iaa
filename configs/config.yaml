@@ -7,7 +7,16 @@ markets:
 validation:
   train_years: [2021, 2022, 2023]
   valid_years: [2024]
-assumptions:   # mirror logs/assumptions_register.md; human gate G3
-  trend_2025: {motor: null, buildings: null, contents: null}
-  development: {motor: null, buildings: null, contents: null}
-  large_loss_cap: {motor: null, buildings: null, contents: null}
+assumptions:   # mirror logs/assumptions_register.md; human gate G3 (approved 2026-10-22, decision #7)
+  trend_2025:    # annual, applied on top of a model that includes sum_insured / rating factors
+    motor: {low: 0.03, central: 0.05, high: 0.07}
+    buildings: {low: 0.04, central: 0.05, high: 0.07}
+    contents: {low: 0.025, central: 0.035, high: 0.045}
+  development:
+    basis: cost              # cost-based IBNR factors (count-based kept for comparison)
+    mature_years: [2021, 2022]
+    severity_cap: 100000     # cap used inside the expected-severity override
+    expected_severity:       # Bornhuetter-Ferguson style override for immature BI
+      - {line: motor, peril: bodily_injury, years: [2023, 2024], base_years: [2021, 2022],
+         trend: {low: 0.0, central: 0.03, high: 0.05}}
+  large_loss_cap: {motor: null, buildings: null, contents: null}   # A3: chosen by temporal CV (decision #6)

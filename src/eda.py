@@ -93,10 +93,13 @@ def one_way(df: pd.DataFrame, factor: str, n_bins: int = 10, **kw) -> pd.DataFra
     return g
 
 
-def lag_cdf(lags_days) -> callable:
-    """Empirical CDF of reporting delay in days."""
-    lags = np.sort(np.asarray(lags_days, float))
-    return lambda x: np.searchsorted(lags, np.asarray(x, float), side="right") / len(lags)
+def lag_cdf(lags_days, weights=None) -> callable:
+    """Empirical CDF of reporting delay in days; with `weights` (e.g. net cost) the share of weight reported by x."""
+    lags = np.asarray(lags_days, float)
+    w = np.ones(len(lags)) if weights is None else np.asarray(weights, float)
+    order = np.argsort(lags, kind="mergesort")
+    lags, cw = lags[order], np.r_[0.0, np.cumsum(w[order]) / w.sum()]
+    return lambda x: cw[np.searchsorted(lags, np.asarray(x, float), side="right")]
 
 
 def ibnr_count_estimate(claims: pd.DataFrame, cutoff: pd.Timestamp, mature_years) -> pd.DataFrame:
