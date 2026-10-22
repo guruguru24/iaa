@@ -63,3 +63,15 @@ def flag_exposure(df: pd.DataFrame, tol: float = 1e-4) -> pd.Series:
     out = np.where(np.isclose(df["exposure"], implied, atol=tol), "ok",
                    np.where(ratio > 2, "days_not_years", "over_small"))
     return pd.Series(out, index=df.index, name="exposure_flag")
+
+
+def apply_claim_overrides(claims: pd.DataFrame, overrides: dict | None) -> pd.DataFrame:
+    """Sensitivity only: replace incurred_to_date for named claims (e.g. decision #6, CL30973963 at 1.19M)."""
+    if not overrides:
+        return claims
+    out = claims.copy()
+    hit = out["claim_id"].isin(overrides)
+    if hit.sum() != len(overrides):
+        raise KeyError(f"override claims not found: {set(overrides) - set(out.loc[hit, 'claim_id'])}")
+    out.loc[hit, "incurred_to_date"] = out.loc[hit, "claim_id"].map(overrides)
+    return out

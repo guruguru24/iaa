@@ -83,3 +83,27 @@ def test_capped_glm_loading_restores_level():
     tr["target_cap"] = tr["target"].clip(upper=tr["target"].quantile(0.995))
     glm = TweedieGLM(["seg"]).fit(tr, "target_cap", loading_target="target")
     assert glm.predict(tr).sum() == pytest.approx(tr["target"].sum(), rel=0.02)
+
+
+def test_apply_claim_overrides():
+    from src.data import apply_claim_overrides
+    c = pd.DataFrame({"claim_id": ["a", "b"], "incurred_to_date": [10.0, 20.0]})
+    assert apply_claim_overrides(c, {"b": 2.0})["incurred_to_date"].tolist() == [10.0, 2.0]
+    assert c["incurred_to_date"].tolist() == [10.0, 20.0]          # original untouched
+    with pytest.raises(KeyError):
+        apply_claim_overrides(c, {"zzz": 1.0})
+
+
+def test_lgbm_tweedie_basics():
+    from src.models import LGBMTweedie
+    df = _toy(8000)
+    df["policy_id"] = np.arange(len(df)) % 2000
+    df["flag"] = df["seg"].eq("b")
+    tr, va = temporal_split(df, [2021, 2022, 2023], [2024])
+    m = LGBMTweedie(["seg", "flag"], params={"min_child_samples": 50}, n_estimators=300).fit(tr, "target")
+    p = m.predict(va)
+    assert np.all(np.isfinite(p)) and np.all(p > 0)
+    np.testing.assert_allclose(m.predict(va.assign(exposure=va.exposure * 2)), 2 * p)
+    np.testing.assert_allclose(LGBMTweedie(["seg", "flag"], params={"min_child_samples": 50}, n_estimators=300).fit(tr, "target").predict(va), p)
+    unseen = va.head(3).assign(seg="zzz")
+    assert np.all(np.isfinite(m.predict(unseen)))
