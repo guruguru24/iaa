@@ -34,7 +34,7 @@ def test_fix_sum_insured_uses_given_median():
 
 def test_fix_construction_type():
     out = fix_construction_type(_df())
-    assert out["construction_type"].iloc[:3].tolist() == ["brick", "brick", "w_unknown"]
+    assert out["construction_type"].iloc[:3].tolist() == ["brick", "brick", "timber"]
     assert pd.isna(out["construction_type"].iloc[3])
     assert fix_construction_type(_df().assign(construction_type="Mud"))["construction_type"].iloc[0] == "other"
 

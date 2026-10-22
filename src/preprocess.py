@@ -1,4 +1,4 @@
-"""Row-level cleaning rules applied identically to train and test (gate G2: proposals until approved).
+"""Row-level cleaning rules applied identically to train and test (gate G2 approved 2026-10-22, decision #4).
 
 Each rule keeps the raw value in `<col>_raw` and adds a `<col>_fixed` flag so its impact stays auditable.
 Reference statistics (e.g. sum_insured median) come from TRAIN only and are passed to test.
@@ -12,10 +12,10 @@ from src.data import exposure_from_dates, flag_exposure
 
 LEAKAGE_COLS = ["renewal_decision"]  # outcome after the period, train only (DQ14)
 
-# construction_type: official levels are brick, stone, timber, non-standard. 'w'/'t' are unresolved (DQ11);
-# they are kept as their own levels until the check script shows what they are.
+# construction_type: official levels are brick, stone, timber, non-standard. 'T' appears only in 2021-22 and 'W'
+# only in 2023-24 with matching volumes -> timber relabelled (Timber -> Wood). Approved G2, decision #4 (DQ11).
 CONSTRUCTION_MAP = {"brick": "brick", "stone": "stone", "non_standard": "non_standard", "timber": "timber",
-                    "w": "w_unknown", "t": "t_unknown"}
+                    "w": "timber", "t": "timber"}
 
 
 def fix_exposure(df: pd.DataFrame) -> pd.DataFrame:
