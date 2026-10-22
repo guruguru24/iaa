@@ -115,3 +115,22 @@ def test_lgbm_balance_reproduces_training_total():
     df["policy_id"] = np.arange(len(df)) % 2000
     m = LGBMTweedie(["seg"], params={"min_child_samples": 50, "learning_rate": 0.01}, n_estimators=20).fit(df, "target")
     assert m.predict(df).sum() == pytest.approx(df["target"].sum(), rel=1e-9)
+
+
+def test_level_sensitivity_finds_calibration_factor():
+    from src.validation import level_sensitivity
+    rng = np.random.default_rng(0)
+    mu = rng.gamma(2.0, 50.0, 20_000)
+    y = np.where(rng.random(20_000) < 0.1, rng.gamma(2.0, mu * 5), 0.0)
+    out = level_sensitivity(y, mu * 0.9)                      # predictions 10% too low
+    best = out[out.get("best", False) == True]["scale"].iloc[0]
+    assert 1.05 <= best <= 1.17
+    assert out.loc[out.scale == 1.1, "d2"].iloc[0] > out.loc[out.scale == 1.0, "d2"].iloc[0]
+
+
+def test_segment_ae():
+    from src.validation import segment_ae
+    df = pd.DataFrame({"f": ["a", "a", "b"], "y": [10.0, 0.0, 30.0], "p": [5.0, 5.0, 20.0], "exposure": 1.0})
+    out = segment_ae(df, "y", "p", "f").set_index("level")
+    assert out.loc["a", "ae"] == 1.0 and out.loc["b", "ae"] == 1.5
+    assert out["exposure_share"].sum() == pytest.approx(1.0)
