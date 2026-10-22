@@ -2,8 +2,8 @@
 
 1. Rolling origin: 2021->2022, 2021-22->2023, 2021-23->2024 (train on-levelled to the valid year at the central trend);
    GLM, GBM and blends with GBM weight 0, .25, .5, .75, 1.
-2. Main fold (->2024), 50/50 blend: level sensitivity (D2 if all predictions x factor), A/E by predicted decile,
-   A/E by key segments (flags outside 0.85-1.15 with >= 2% exposure).
+2. Main fold (->2024), 50/50 blend: level sensitivity (D2 if all predictions x factor), A/E by predicted decile.
+   A/E by segment on every fold; segments off (outside 0.85-1.15, >= 2% exposure) in >= 2 folds are listed.
 3. GBM variants on the main fold: current, slower/deeper, + make_model (motor).
 
 Writes outputs/reports/w1_diagnostics_<time>/*.csv and prints a compact summary.
@@ -32,11 +32,15 @@ FOLDS = [([2021], 2022), ([2021, 2022], 2023), ([2021, 2022, 2023], 2024)]
 WEIGHTS = [0.0, 0.25, 0.5, 0.75, 1.0]
 SEGMENTS = {
     "motor": ["driver_age", "ncb_years", "vehicle_value_group", "cover_type", "region", "channel", "new_business",
-              "annual_mileage", "fuel_type", "telematics_missing"],
+              "annual_mileage", "fuel_type", "telematics_missing", "vehicle_age", "overnight_parking", "vehicle_use",
+              "body_type", "named_young_driver", "driver_assist", "voluntary_excess", "payment_method", "credit_band"],
     "buildings": ["region", "construction_type", "sum_insured", "flood_zone", "property_type", "occupancy",
-                  "property_age", "soil_type", "dry_summer_index", "timber_post2023"],
+                  "property_age", "soil_type", "dry_summer_index", "timber_post2023", "roof_type", "trees_within_5m",
+                  "basement", "urban_density", "listed_building", "accidental_damage_cover", "voluntary_excess",
+                  "days_unoccupied", "smoke_alarms", "channel", "credit_band"],
     "contents": ["region", "tenure", "sum_insured", "security_level", "high_value_items", "policyholder_age",
-                 "urban_density", "accidental_damage_cover"],
+                 "urban_density", "accidental_damage_cover", "lodgers", "works_from_home", "bicycle_cover",
+                 "voluntary_excess", "property_type", "channel", "credit_band"],
 }
 
 ap = argparse.ArgumentParser()
@@ -75,6 +79,10 @@ for line in a.lines:
         y = va["target_dev"].to_numpy()
         for w in WEIGHTS:
             folds.append({"line": line, "valid_year": vy, "w_gbm": w, **evaluate(y, (1 - w) * p_glm + w * p_gbm)})
+        vb = va.assign(p_blend=0.5 * p_glm + 0.5 * p_gbm)
+        for f in SEGMENTS[line]:
+            if f in vb:
+                segs.append(segment_ae(vb, "target_dev", "p_blend", f).assign(line=line, valid_year=vy))
         if vy == 2024:
             va = va.assign(p_blend=0.5 * p_glm + 0.5 * p_gbm, p_glm=p_glm, p_gbm=p_gbm)
             main_tr, main_va = tr, va
@@ -86,9 +94,6 @@ for line in a.lines:
         levels.append(level_sensitivity(y, main_va[name]).assign(line=line, model=name))
         lt = lift_table(y, main_va[name]).reset_index().assign(line=line, model=name)
         lifts.append(lt)
-    for f in SEGMENTS[line]:
-        if f in main_va:
-            segs.append(segment_ae(main_va, "target_dev", "p_blend", f).assign(line=line))
 
     # 3. GBM variants on the main fold
     if not a.skip_variants:
@@ -125,9 +130,17 @@ lv = lv.join(L[is_best].set_index(["line", "model"])[["scale", "d2"]].rename(col
 print(lv.round(4).to_string())
 print("\n=== 2b. A/E by predicted decile (2024, blend)")
 print(LI[LI.model == "p_blend"].pivot_table(index="line", columns="bin", values="ae").round(2).to_string())
-print("\n=== 2c. Segments outside A/E 0.85-1.15 with >= 2% exposure (2024, blend)")
-flag = S[((S.ae < 0.85) | (S.ae > 1.15)) & (S.exposure_share >= 0.02)]
-print(flag[["line", "factor", "level", "exposure_share", "rows_with_claim", "ae"]].round(3).to_string(index=False) if len(flag) else "none")
+print("\n=== 2c. Segments outside A/E 0.85-1.15 (>= 2% exposure) in at least 2 of 3 folds (blend); A/E per valid year")
+S["off"] = ((S.ae < 0.85) | (S.ae > 1.15)) & (S.exposure_share >= 0.02)
+piv = S.pivot_table(index=["line", "factor", "level"], columns="valid_year", values="ae")
+info = S.groupby(["line", "factor", "level"]).agg(n_off=("off", "sum"), exposure_share=("exposure_share", "mean"),
+                                                 claims_per_year=("rows_with_claim", "mean"))
+pers = piv.join(info)
+side = np.sign(piv - 1)
+pers["same_side"] = side.abs().sum(axis=1) == side.sum(axis=1).abs()
+pers = pers[pers.n_off >= 2].sort_values(["line", "n_off"], ascending=[True, False])
+print(pers.round(3).to_string() if len(pers) else "none")
+print("(same_side = A/E on the same side of 1 in every fold -> systematic rather than noise)")
 if len(V):
     print("\n=== 3. GBM variants on 2024 (w_gbm 1.0 = GBM alone, 0.5 = blend with GLM)")
     print(V[["line", "variant", "w_gbm", "trees", "balance", "d2", "ae", "gini"]].round(4).to_string(index=False))
