@@ -29,7 +29,7 @@ def design_matrix(df: pd.DataFrame, factors, year_col: str = "policy_year", base
     years = sorted(y for y in df[year_col].unique() if y != base_year)
     for y in years:
         blocks.append(sp.csr_matrix((df[year_col].to_numpy() == y).astype(float)).T)
-        names.append(f"year={y}")
+        names.append(f"year={int(y)}")
     for f in factors:
         lv = band(df[f], n_bins)
         dummies = pd.get_dummies(lv, prefix=f, sparse=True, dtype=float)
@@ -47,6 +47,7 @@ def _year_effects(model, names) -> pd.Series:
 def year_effects(df: pd.DataFrame, factors, y: str, weight: str | None, kind: str,
                  base_year: int = 2021, alpha: float = 1e-6) -> pd.DataFrame:
     """Crude and mix-adjusted year effects relative to base_year. kind in {'poisson','gamma','tweedie'}."""
+    df = df.assign(policy_year=df["policy_year"].astype(int))  # claim-level frames carry float years
     model = {"poisson": PoissonRegressor, "gamma": GammaRegressor}.get(kind)
     model = model(alpha=alpha, max_iter=1000) if model else TweedieRegressor(power=1.5, link="log", alpha=alpha, max_iter=1000)
     w = None if weight is None else df[weight].to_numpy()

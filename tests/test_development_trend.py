@@ -60,3 +60,8 @@ def test_year_effects_recover_trend_under_mix_shift():
     assert e.loc[2023, "mix_adjusted"] == pytest.approx(1.21, rel=0.05)
     assert e.loc[2023, "crude"] > 1.35
     assert annual_trend(e["mix_adjusted"], [2021, 2022, 2023]) == pytest.approx(0.10, abs=0.03)
+    # claim-level frames carry float years (NaN-capable column): same result, integer index
+    ef = year_effects(df.assign(policy_year=df.policy_year.astype(float)), ["seg"], y="n", weight="exposure",
+                      kind="poisson").set_index("policy_year")
+    assert ef.index.tolist() == [2021, 2022, 2023]
+    assert ef.loc[2023, "mix_adjusted"] == pytest.approx(e.loc[2023, "mix_adjusted"])
