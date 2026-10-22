@@ -42,4 +42,4 @@ print(bi.groupby("status").incurred_to_date.quantile([.5, .9, .99, .999, 1]).uns
 print("open BI incurred/paid ratio quantiles by loss year:")
 print(bi[bi.status == "open"].groupby("loss_year").ratio.quantile([.5, .9, .99, 1]).unstack().round(2).to_string())
 print("top 10 BI by incurred:")
-print(bi.nlargest(10, "incurred_to_date")[["claim_id", "loss_date", "report_date", "status", "paid_to_date", "incurred_to_date", "ratio"]].round(2).to_string())
+print(bi.nlargest(10, "incurred_to_date")[["claim_id", "loss_date", "report_date", "status", "paid_to_date", "incurred_to_date", "ratio"]].round({"paid_to_date": 2, "incurred_to_date": 2, "ratio": 2}).to_string())
