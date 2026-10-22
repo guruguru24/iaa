@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 outputs/models/
+
+# candidate submission files are reproducible from code (sha checked in manifest); keep manifests only
+outputs/submissions/candidates/*.csv
+!outputs/submissions/candidates/manifest_*.csv
