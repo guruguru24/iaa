@@ -43,5 +43,5 @@ def write_submission(sub: pd.DataFrame, sample: pd.DataFrame, market: str, out_d
     path.parent.mkdir(parents=True, exist_ok=True)
     sub.to_csv(path, index=False)
     sha = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
-    print(f"Wrote {path} sha256={sha} — log it in logs/decision_log.md")
+    print(f"Wrote {path} sha256={sha} - log it in logs/decision_log.md")
     return path
