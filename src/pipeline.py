@@ -24,15 +24,25 @@ from src.submission import check_submission, write_submission
 TARGET_YEAR = {"w1": 2025}
 
 
-def fit_predict(model: str, tr: pd.DataFrame, te: pd.DataFrame, factors, cap: int, seed: int) -> tuple[np.ndarray, dict]:
+def gbm_spec(line: str, cfg: dict) -> tuple[str, dict]:
+    """GBM config name and settings for a line (config: model_by_line, gbm_configs); default c0."""
+    name = cfg.get("model_by_line", {}).get(line, {}).get("gbm", "c0")
+    return name, cfg.get("gbm_configs", {}).get(name, {"stop": "policy", "params": {}})
+
+
+def fit_predict(model: str, tr: pd.DataFrame, te: pd.DataFrame, factors, cap: int, seed: int,
+                gbm: dict | None = None) -> tuple[np.ndarray, dict]:
     """Fit the chosen model on the capped target (+ loading) and predict test rows."""
     capped = f"target_dev_cap{cap}"
+    gbm = gbm or {"stop": "policy", "params": {}}
     info, preds = {}, {}
     if model in ("glm", "blend"):
         m = TweedieGLM(factors).fit(tr, capped, loading_target="target_dev")
         preds["glm"], info["glm_loading"] = m.predict(te), m.loading_
     if model in ("gbm", "blend"):
-        m = LGBMTweedie(factors, seed=seed).fit(tr, capped, loading_target="target_dev")
+        m = LGBMTweedie(factors, seed=seed, params=gbm.get("params") or {}, stop=gbm.get("stop", "policy"),
+                        n_estimators=6000 if gbm.get("stop") == "time" else 3000)
+        m = m.fit(tr, capped, loading_target="target_dev")
         preds["gbm"], info["gbm_loading"], info["gbm_trees"] = m.predict(te), m.loading_, m.n_trees_
     p = 0.5 * preds["glm"] + 0.5 * preds["gbm"] if model == "blend" else preds[model]
     return p, info
@@ -72,8 +82,9 @@ def run(market: str = "w1", model: str = "glm", scenario: str = "central", loadi
             raise ValueError(f"{line}: features missing in test: {missing}")
         on = onlevel_factor(tr["policy_year"], to_year, g)
         tr_on = tr.assign(target_dev=tr["target_dev"] * on, **{f"target_dev_cap{cap}": tr[f"target_dev_cap{cap}"] * on})
-        p, info = fit_predict(model, tr_on, te, factors, cap, cfg["seed"])
-        row = {"line": line, "model": model, "scenario": scenario, "trend": g, "cap": cap, "n_train": len(tr), "n_test": len(te),
+        gname, gspec = gbm_spec(line, cfg)
+        p, info = fit_predict(model, tr_on, te, factors, cap, cfg["seed"], gspec)
+        row = {"line": line, "model": model, "gbm_config": gname, "scenario": scenario, "trend": g, "cap": cap, "n_train": len(tr), "n_test": len(te),
                "test_exposure": te["exposure"].sum(), "pred_total": p.sum(), **info, **level_check(tr, te, p, g, to_year)}
         if loading_sensitivity and line == "motor":
             alt = apply_claim_overrides(claims, asm["large_loss_sensitivity"])
