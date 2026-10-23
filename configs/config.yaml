@@ -29,4 +29,4 @@ gbm_configs:   # LightGBM Tweedie settings by name (scripts/run_gbm_tuning.py, s
 model_by_line:   # G4: final predictor per line = 50/50 blend of GLM and the named GBM config
   motor: {gbm: c0}
   buildings: {gbm: c0}
-  contents: {gbm: c0}
+  contents: {gbm: c7}   # decision #18
