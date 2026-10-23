@@ -69,13 +69,15 @@ def run(market: str = "w1", model: str = "glm", scenario: str = "central", loadi
     asm = cfg["assumptions"]
     to_year = TARGET_YEAR[market]
     weather = asm["weather_mode"]
+    wyears = asm.get("weather_years") if weather == "long_run" else None
     claims = load_claims(market)
     refs = reference_tables(market)
     preds, summary = {}, []
     for line in LINES:
         g, cap = asm["trend_2025"][line][scenario], asm["large_loss_cap"][line]
-        tr = train_frame(line, market, caps=(cap,), claims=claims, refs=refs, weather_mode=weather, scenario=scenario)
-        te = test_frame(line, market, refs=refs, weather_mode=weather)
+        tr = train_frame(line, market, caps=(cap,), claims=claims, refs=refs, weather_mode=weather, scenario=scenario,
+                         weather_years=wyears)
+        te = test_frame(line, market, refs=refs, weather_mode=weather, weather_years=wyears)
         factors = feature_columns(tr)
         missing = [f for f in factors if f not in te]
         if missing:
@@ -88,7 +90,8 @@ def run(market: str = "w1", model: str = "glm", scenario: str = "central", loadi
                "test_exposure": te["exposure"].sum(), "pred_total": p.sum(), **info, **level_check(tr, te, p, g, to_year)}
         if loading_sensitivity and line == "motor":
             alt = apply_claim_overrides(claims, asm["large_loss_sensitivity"])
-            tr_alt = train_frame(line, market, caps=(cap,), claims=alt, refs=refs, weather_mode=weather, scenario=scenario)
+            tr_alt = train_frame(line, market, caps=(cap,), claims=alt, refs=refs, weather_mode=weather, scenario=scenario,
+                                 weather_years=wyears)
             loading_alt = (tr_alt["target_dev"] * onlevel_factor(tr_alt["policy_year"], to_year, g)).sum() / \
                           (tr_alt[f"target_dev_cap{cap}"] * onlevel_factor(tr_alt["policy_year"], to_year, g)).sum()
             key = "glm_loading" if "glm_loading" in info else "gbm_loading"
