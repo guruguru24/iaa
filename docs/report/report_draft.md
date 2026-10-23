@@ -1,6 +1,6 @@
 # Actuarial Pricing Across Markets with AI Assistance — Solo entry (Suguru Fujita)
 
-*Draft v0.1 (Week 1 complete, Week 2 placeholders marked ⟨W2⟩). Every number below is traceable to `logs/` or
+*Draft v0.2 (Week 1 final results in; Week 2 placeholders marked ⟨W2⟩). Every number below is traceable to `logs/` or
 `outputs/reports/`. Graded scope: first 5 pages.*
 
 ## 1. Executive summary
@@ -11,7 +11,9 @@
   (explainability anchor) and a regularised LightGBM Tweedie, with large-loss caps + loading and a credibility-weighted
   experience (bonus-malus) modifier.
 - **Results.** Temporal validation (train 2021–23 → validate 2024, pooled): constant 0.082 → GLM 0.137 → blend 0.139.
-  Public leaderboard: first submission 0.12293 → final 0.12480. ⟨W2: Week 2 validation and LB⟩
+  Week 1 final: **private D² 0.13363, rank 30** (public 0.12480; first submission 0.12293). The private score sits close
+  to our temporal-validation estimate, while the public board read lower — selection led by validation, not the
+  leaderboard, was the right call. ⟨W2: Week 2 validation and LB⟩
 - **AI workflow.** Claude Code built and challenged every step; the human owner signed off 22 logged decisions at five
   review gates. AI errors were caught by tests, validation and the official data description before they reached a
   submission (§3).
@@ -56,7 +58,15 @@ D²-optimal global scale is 0.96–1.03 (gain ≤ 0.0002), so remaining error is
 Adopted: caps 100k/100k/25k; contents GBM c7 (+0.0018/+0.0017). Rejected: recency weighting (motor −0.0037 in 2023),
 written premium as a feature, raw make_model, prior-claims features v1/v2, stacking (unstable weights).
 Leaderboard-informed (documented as such): long-run instead of same-year weather (+0.0011 LB; also the principled
-choice — realised weather is unknown at pricing); near-pass buildings c7 and experience modifier (b3).
+choice — realised weather is unknown at pricing); near-pass buildings c7 and experience modifier (b3, public +0.0004,
+the two effects adding up). Final selection: validated model (b) plus b3; Kaggle scores the better of the two.
+
+| Submission (public / private) | Change vs previous | Public |
+|---|---|---|
+| First blend | — | 0.12293 |
+| + long-run weather | +0.0011 | 0.12401 |
+| + contents GBM c7 (validated) | +0.0004 | 0.12438 |
+| + buildings c7 + experience modifier (final, private 0.13363) | +0.0004 | 0.12480 |
 
 **Limitations and uncertainty.** 2024 "actuals" are developed estimates; IBNER assumed 1.0 (±10–30% on long-tail
 perils); single-year validation folds; motor validation A/E 0.95–0.98; credit band is a fairness-sensitive factor.
@@ -87,11 +97,15 @@ the data was re-run by the owner on full data; owner-run scripts print compact e
   per-peril level checks; escalation triggers logged (e.g. motor 2023 A/E 1.13 explained by one claim).
 - **Leakage controls:** only information known at inception; prior claims counted only if reported before the row starts.
 - **Reproducibility:** `python -m src.pipeline --market w1 --model blend`; seeds and assumptions in `configs/config.yaml`;
-  a rebuild one day later was byte-identical to the submitted file (sha256 72be5f20…), and the final b3 rebuild
-  likewise ⟨confirm⟩; git tag `w1-final`.
+  rebuilds on later days were byte-identical to the submitted files (first submission sha256 72be5f20…, final b3
+  b1e69ab9…, built by two different scripts); git tag `w1-final`.
 
 ## 5. Pricing tool & communication
 ⟨Streamlit tool: policy inputs → expected cost, GLM factor breakdown, model/data/assumption versions; batch CSV mode.⟩
 
 ## 6. Limitations & next steps
-⟨Week 2 learnings; peril-level models; longer development history; fairness review of credit band.⟩
+- **Week 1 lessons carried into Week 2:** average GBMs over seeds by default (a late 5-seed build scored private
+  0.13403 vs 0.13363); build final candidates early (each full build took 20–40 min); keep the two-fold rule.
+- **Open items:** pre-registered re-test of the experience modifier on the final model (deferred for time);
+  per-peril models (frequency learned, severity barely); longer development history for IBNER; fairness review of
+  credit band before any production use. ⟨W2 learnings⟩
