@@ -208,3 +208,16 @@ def test_freqsev_gbm_recovers_peril_structure_and_level():
     ratio = pp.loc[rows.seg == "b", "fire"].mean() / pp.loc[rows.seg == "a", "fire"].mean()
     assert 2.0 < ratio < 4.0                                                    # fire 3x as frequent in seg b
     assert np.all(np.isfinite(m.predict(rows.head(3).assign(seg="zzz"))))      # unseen level
+
+
+def test_simplex_weights_prefers_the_informative_model():
+    from src.stacking import apply_weights, simplex_weights
+    rng = np.random.default_rng(0)
+    mu = rng.gamma(2.0, 50.0, 30_000)
+    y = np.where(rng.random(30_000) < 0.2, rng.gamma(2.0, mu * 2.5), 0.0)
+    preds = {"good": mu, "flat": np.full_like(mu, mu.mean()), "noisy": mu * rng.lognormal(0, 1.0, mu.size)}
+    w = simplex_weights(y, preds)
+    assert sum(w.values()) == pytest.approx(1.0, abs=1e-3) and min(w.values()) >= 0
+    assert w["good"] > 0.6
+    blended = apply_weights(preds, w)
+    assert evaluate(y, blended)["d2"] >= evaluate(y, preds["flat"])["d2"]
