@@ -94,7 +94,11 @@ the data was re-run by the owner on full data; owner-run scripts print compact e
   b1e69ab9…, built by two different scripts); git tag `w1-final`.
 
 ## 5. Pricing tool & communication
-⟨Streamlit tool: policy inputs → expected cost, GLM factor breakdown, model/data/assumption versions; batch CSV mode.⟩
+A Streamlit tool (`app/pricing_tool.py`) loads the same fitted models as the submission (test-row totals match the
+final file exactly in every line). For a single policy it returns the expected 2025 cost, the GLM and GBM views, the
+experience factor, and a GLM breakdown (base rate × factor relativities × exposure); a batch mode prices a CSV and
+returns it for download; an About page shows the model, data and assumption versions. Where GLM and GBM disagree
+for a policy, the team sees both numbers and can investigate before relying on the blend.
 
 ## 6. Limitations & next steps
 - **Week 1 lessons carried into Week 2:** average GBMs over seeds by default (a late 5-seed build scored private
