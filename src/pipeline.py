@@ -18,7 +18,8 @@ import pandas as pd
 from src.data import LINES, REPO, apply_claim_overrides, load_claims, load_config, load_table
 from src.dataset import onlevel_factor, reference_tables, test_frame, train_frame
 from src.features import feature_columns
-from src.models import LGBMTweedie, TweedieGLM
+from src.history import HIST_COLS
+from src.models import ExperienceModifier, LGBMTweedie, TweedieGLM
 from src.submission import check_submission, write_submission
 
 TARGET_YEAR = {"w1": 2025}
@@ -31,21 +32,48 @@ def gbm_spec(line: str, cfg: dict) -> tuple[str, dict]:
 
 
 def fit_predict(model: str, tr: pd.DataFrame, te: pd.DataFrame, factors, cap: int, seed: int,
-                gbm: dict | None = None) -> tuple[np.ndarray, dict]:
-    """Fit the chosen model on the capped target (+ loading) and predict test rows."""
+                gbm: dict | None = None, modifier: dict | None = None, return_models: bool = False):
+    """Fit the chosen model on the capped target (+ loading), optionally x experience modifier; predict test rows."""
     capped = f"target_dev_cap{cap}"
     gbm = gbm or {"stop": "policy", "params": {}}
-    info, preds = {}, {}
+    info, preds, train_preds, models = {}, {}, {}, {}
     if model in ("glm", "blend"):
         m = TweedieGLM(factors).fit(tr, capped, loading_target="target_dev")
-        preds["glm"], info["glm_loading"] = m.predict(te), m.loading_
+        preds["glm"], train_preds["glm"], info["glm_loading"], models["glm"] = m.predict(te), m.predict(tr), m.loading_, m
     if model in ("gbm", "blend"):
         m = LGBMTweedie(factors, seed=seed, params=gbm.get("params") or {}, stop=gbm.get("stop", "policy"),
                         n_estimators=6000 if gbm.get("stop") == "time" else 3000)
         m = m.fit(tr, capped, loading_target="target_dev")
-        preds["gbm"], info["gbm_loading"], info["gbm_trees"] = m.predict(te), m.loading_, m.n_trees_
-    p = 0.5 * preds["glm"] + 0.5 * preds["gbm"] if model == "blend" else preds[model]
-    return p, info
+        preds["gbm"], train_preds["gbm"], models["gbm"] = m.predict(te), m.predict(tr), m
+        info["gbm_loading"], info["gbm_trees"] = m.loading_, m.n_trees_
+    blend = (lambda d: 0.5 * d["glm"] + 0.5 * d["gbm"]) if model == "blend" else (lambda d: d[model])
+    p = blend(preds)
+    if modifier:
+        mod = ExperienceModifier(col=modifier.get("col", "hist_claims_1y"), max_bucket=modifier.get("max_bucket", 3),
+                                 k=modifier.get("k", 200.0)).fit(tr, tr["target_dev"], blend(train_preds))
+        p, models["modifier"] = mod.apply(te, p), mod
+        info["modifier_factors"] = {int(k): round(float(v), 4) for k, v in mod.factors_.items()}
+    return (p, info, models) if return_models else (p, info)
+
+
+def prepare_line(line: str, cfg: dict, market: str, claims, refs, scenario: str = "central"):
+    """Train frame (on-levelled to the target year) and test frame for one line, with the configured weather/history."""
+    asm = cfg["assumptions"]
+    to_year = TARGET_YEAR[market]
+    weather = asm["weather_mode"]
+    wyears = asm.get("weather_years") if weather == "long_run" else None
+    history = bool(cfg.get("experience_modifier"))
+    g, cap = asm["trend_2025"][line][scenario], asm["large_loss_cap"][line]
+    tr = train_frame(line, market, caps=(cap,), claims=claims, refs=refs, weather_mode=weather, scenario=scenario,
+                     weather_years=wyears, history=history)
+    te = test_frame(line, market, refs=refs, weather_mode=weather, weather_years=wyears, history=history, claims=claims)
+    factors = [f for f in feature_columns(tr) if f not in HIST_COLS]
+    missing = [f for f in factors if f not in te]
+    if missing:
+        raise ValueError(f"{line}: features missing in test: {missing}")
+    on = onlevel_factor(tr["policy_year"], to_year, g)
+    tr_on = tr.assign(target_dev=tr["target_dev"] * on, **{f"target_dev_cap{cap}": tr[f"target_dev_cap{cap}"] * on})
+    return tr, tr_on, te, factors, g, cap
 
 
 def level_check(tr: pd.DataFrame, te: pd.DataFrame, pred: np.ndarray, trend: float, to_year: int) -> dict:
@@ -74,18 +102,9 @@ def run(market: str = "w1", model: str = "glm", scenario: str = "central", loadi
     refs = reference_tables(market)
     preds, summary = {}, []
     for line in LINES:
-        g, cap = asm["trend_2025"][line][scenario], asm["large_loss_cap"][line]
-        tr = train_frame(line, market, caps=(cap,), claims=claims, refs=refs, weather_mode=weather, scenario=scenario,
-                         weather_years=wyears)
-        te = test_frame(line, market, refs=refs, weather_mode=weather, weather_years=wyears)
-        factors = feature_columns(tr)
-        missing = [f for f in factors if f not in te]
-        if missing:
-            raise ValueError(f"{line}: features missing in test: {missing}")
-        on = onlevel_factor(tr["policy_year"], to_year, g)
-        tr_on = tr.assign(target_dev=tr["target_dev"] * on, **{f"target_dev_cap{cap}": tr[f"target_dev_cap{cap}"] * on})
+        tr, tr_on, te, factors, g, cap = prepare_line(line, cfg, market, claims, refs, scenario)
         gname, gspec = gbm_spec(line, cfg)
-        p, info = fit_predict(model, tr_on, te, factors, cap, cfg["seed"], gspec)
+        p, info = fit_predict(model, tr_on, te, factors, cap, cfg["seed"], gspec, cfg.get("experience_modifier"))
         row = {"line": line, "model": model, "gbm_config": gname, "scenario": scenario, "trend": g, "cap": cap, "n_train": len(tr), "n_test": len(te),
                "test_exposure": te["exposure"].sum(), "pred_total": p.sum(), **info, **level_check(tr, te, p, g, to_year)}
         if loading_sensitivity and line == "motor":

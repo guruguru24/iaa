@@ -29,5 +29,6 @@ gbm_configs:   # LightGBM Tweedie settings by name (scripts/run_gbm_tuning.py, s
   c7: {stop: time, params: {learning_rate: 0.03, num_leaves: 7, min_child_samples: 2000}}
 model_by_line:   # G4: final predictor per line = 50/50 blend of GLM and the named GBM config
   motor: {gbm: c0}
-  buildings: {gbm: c0}
+  buildings: {gbm: c7}   # decision #22 (final b3)
   contents: {gbm: c7}   # decision #18
+experience_modifier: {col: hist_claims_1y, max_bucket: 3, k: 200}   # decision #22 (final b3); null to switch off
