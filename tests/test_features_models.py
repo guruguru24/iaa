@@ -180,3 +180,31 @@ def test_experience_modifier():
     assert adj[obs].sum() == pytest.approx(pred[obs].sum())   # level unchanged on fitted rows
     assert (adj[~obs] == 100.0).all()                         # unknown history -> 1.0
     assert evaluate(y, adj)["d2"] > evaluate(y, pred)["d2"]
+
+
+def test_freqsev_gbm_recovers_peril_structure_and_level():
+    from src.models import FreqSevGBM
+    rng = np.random.default_rng(3)
+    n = 40_000
+    rows = pd.DataFrame({"row_id": [f"R{i}" for i in range(n)], "policy_year": rng.choice([2022, 2023, 2024], n),
+                         "seg": rng.choice(["a", "b"], n), "exposure": rng.uniform(0.3, 1.0, n)})
+    lam = {"fire": np.where(rows.seg == "b", 0.03, 0.01), "theft": np.full(n, 0.05)}
+    claims = []
+    for p, l in lam.items():
+        k = rng.poisson(l * rows.exposure)
+        idx = np.repeat(np.arange(n), k)
+        claims.append(pd.DataFrame({"row_id": rows.row_id.values[idx], "peril": p, "policy_year": rows.policy_year.values[idx],
+                                    "net": rng.gamma(2.0, 5000 if p == "fire" else 500, len(idx))}))
+    c = pd.concat(claims, ignore_index=True)
+    rows["target_cap"] = rows.row_id.map(c.assign(v=c.net.clip(upper=50_000)).groupby("row_id").v.sum()).fillna(0)
+    rows["target"] = rows.row_id.map(c.groupby("row_id").net.sum()).fillna(0)
+    cf = pd.DataFrame({"peril": ["fire", "theft"], "policy_year": 2024, "count_dev_factor": 1.0})
+    m = FreqSevGBM(["seg"], cap=50_000, trend=0.0, to_year=2024, params_freq={"min_child_samples": 50},
+                   params_sev={"min_child_samples": 20}, min_sev_claims=50)
+    m.fit(rows, c, "target_cap", cf, loading_target="target")
+    p = m.predict(rows)
+    assert p.sum() == pytest.approx(rows["target"].sum(), rel=1e-6)            # balance x loading restores level
+    pp = m.peril_predictions(rows).div(rows.exposure, axis=0)
+    ratio = pp.loc[rows.seg == "b", "fire"].mean() / pp.loc[rows.seg == "a", "fire"].mean()
+    assert 2.0 < ratio < 4.0                                                    # fire 3x as frequent in seg b
+    assert np.all(np.isfinite(m.predict(rows.head(3).assign(seg="zzz"))))      # unseen level

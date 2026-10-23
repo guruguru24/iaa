@@ -153,3 +153,96 @@ class ExperienceModifier:
     def apply(self, df: pd.DataFrame, pred) -> np.ndarray:
         f = self._bucket(df).map(self.factors_).fillna(1.0).to_numpy()
         return np.asarray(pred, float) * f
+
+
+def _fit_cats(df: pd.DataFrame, factors) -> dict:
+    return {c: sorted(df[c].dropna().astype(str).unique()) for c in factors
+            if not pd.api.types.is_numeric_dtype(df[c]) or pd.api.types.is_bool_dtype(df[c])}
+
+
+def _cat_X(df: pd.DataFrame, factors, cats: dict) -> pd.DataFrame:
+    X = df[list(factors)].copy()
+    for c, levels in cats.items():
+        known = set(levels)
+        X[c] = pd.Categorical(X[c].astype("object").map(lambda v: str(v) if pd.notna(v) and str(v) in known else None),
+                              categories=levels)
+    return X
+
+
+def _lgbm_time_stopped(X, y, w, years, objective: str, params: dict, seed: int, patience: int = 300,
+                       n_estimators: int = 6000, refit_scale: float = 1.1):
+    """Early stopping on the last training year, then refit on all rows with best_iteration x refit_scale trees."""
+    import lightgbm as lgb
+    hold = years == years.max()
+    base = {"learning_rate": 0.05, "num_leaves": 31, "min_child_samples": 300, "subsample": 0.8, "subsample_freq": 1,
+            "colsample_bytree": 0.8, "reg_lambda": 1.0, "verbose": -1, **params}
+    if hold.all() or (~hold).sum() == 0:
+        n = 100
+    else:
+        m = lgb.LGBMRegressor(objective=objective, n_estimators=n_estimators, random_state=seed, **base)
+        m.fit(X[~hold], y[~hold], sample_weight=None if w is None else w[~hold], eval_X=(X[hold],), eval_y=(y[hold],),
+              eval_sample_weight=None if w is None else [w[hold]], callbacks=[lgb.early_stopping(patience, verbose=False)])
+        n = max(int(round((m.best_iteration_ or n_estimators) * refit_scale)), 1)
+    m = lgb.LGBMRegressor(objective=objective, n_estimators=n, random_state=seed, **base)
+    m.fit(X, y, sample_weight=w)
+    return m, n
+
+
+class FreqSevGBM:
+    """Stage 2 (decision #14): per-peril frequency (Poisson GBM) x severity (Gamma GBM on capped claims).
+
+    Frequency target: claims of the peril per row x count development factor (peril, year), per unit exposure.
+    Severity target: claim net capped at `cap`, on-levelled to `to_year` at `trend`. Perils with fewer than
+    `min_sev_claims` claims use the mean on-levelled capped severity. Prediction = sum over perils of
+    freq x exposure x sev, rescaled to the training capped total (balance) and multiplied by the large-loss loading.
+    """
+
+    def __init__(self, factors, cap: float, trend: float, to_year: int, seed: int = 2025,
+                 params_freq: dict | None = None, params_sev: dict | None = None, min_sev_claims: int = 300):
+        self.factors, self.cap, self.trend, self.to_year, self.seed = list(factors), cap, trend, to_year, seed
+        self.params_freq, self.params_sev, self.min_sev_claims = params_freq or {}, params_sev or {}, min_sev_claims
+
+    def fit(self, rows: pd.DataFrame, claims_c: pd.DataFrame, capped_target: str, count_factors: pd.DataFrame,
+            exposure: str = "exposure", loading_target: str | None = None):
+        """rows: training rows (features, policy_year, exposure, on-levelled capped/uncapped targets).
+        claims_c: claim-level (row_id, peril, net, policy_year) for in-period, non-declined, net > 0 claims of these rows."""
+        self.cats_ = _fit_cats(rows, self.factors)
+        X = _cat_X(rows, self.factors, self.cats_)
+        e = rows[exposure].to_numpy(dtype=float)
+        years = rows["policy_year"].to_numpy()
+        c = claims_c[claims_c["row_id"].isin(rows["row_id"])]
+        self.perils_ = sorted(c["peril"].unique())
+        cf = count_factors.set_index(["peril", "policy_year"])["count_dev_factor"]
+        self.freq_, self.sev_, self.trees_ = {}, {}, {}
+        for p in self.perils_:
+            cp = c[c["peril"] == p]
+            n = rows["row_id"].map(cp.groupby("row_id").size()).fillna(0).to_numpy(dtype=float)
+            dev = pd.Series(list(zip([p] * len(rows), years))).map(cf).fillna(1.0).to_numpy()
+            self.freq_[p], nf = _lgbm_time_stopped(X, n * dev / e, e, years, "poisson", self.params_freq, self.seed)
+            sev = cp["net"].clip(upper=self.cap) * (1 + self.trend) ** (self.to_year - cp["policy_year"].astype(int))
+            if len(cp) >= self.min_sev_claims:
+                Xs = _cat_X(cp[["row_id"]].merge(rows[["row_id"] + self.factors], on="row_id", how="left"), self.factors, self.cats_)
+                self.sev_[p], ns = _lgbm_time_stopped(Xs, sev.to_numpy(), None, cp["policy_year"].astype(int).to_numpy(),
+                                                      "gamma", self.params_sev, self.seed)
+            else:
+                self.sev_[p], ns = float(sev.mean()), 0
+            self.trees_[p] = (nf, ns)
+        self.balance_ = 1.0
+        self.balance_ = rows[capped_target].sum() / self._raw(rows, exposure).sum()
+        self.loading_ = 1.0 if loading_target is None else rows[loading_target].sum() / rows[capped_target].sum()
+        return self
+
+    def peril_predictions(self, df: pd.DataFrame, exposure: str = "exposure") -> pd.DataFrame:
+        X = _cat_X(df, self.factors, self.cats_)
+        out = {}
+        for p in self.perils_:
+            f = self.freq_[p].predict(X)
+            s = self.sev_[p].predict(X) if not isinstance(self.sev_[p], float) else self.sev_[p]
+            out[p] = f * s * df[exposure].to_numpy()
+        return pd.DataFrame(out, index=df.index)
+
+    def _raw(self, df, exposure):
+        return self.peril_predictions(df, exposure).sum(axis=1).to_numpy() * self.balance_
+
+    def predict(self, df: pd.DataFrame, exposure: str = "exposure") -> np.ndarray:
+        return self._raw(df, exposure) * self.loading_
