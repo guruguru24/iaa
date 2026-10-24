@@ -1,34 +1,63 @@
-# 05 — Week 2: market-shift analysis and adaptation playbook
+# 05 — Week 2: emerging-market shift analysis and adaptation playbook
 
-Purpose: show *what changed*, *how we responded*, *what uncertainty remains* (explicitly graded).
+Graded explicitly: **identify what changed**, **decide what to carry over from Part 1**, **communicate remaining uncertainty**.
 
-## 1. Detect what changed (run before any modelling)
-- [ ] Schema diff: new/missing/renamed columns, changed category levels, units/currency
-- [ ] Definition diff: exposure, claim status codes, excess, recoveries, development maturity
-- [ ] Volume: rows, exposure, claims per line (credibility)
-- [ ] Distribution shift per feature (PSI, KS, level frequency tables)
-- [ ] Outcome shift: frequency, severity, burning cost, tail, by line and year
-- [ ] Relationship shift: apply Week 1 model to Week 2 training data → A/E overall and by factor (where does it break?)
-- [ ] Data quality issues specific to the new market
-
-## 2. Adaptation options (choose with evidence; human gate G6)
-| Situation | Option |
+## 0. Known facts from the brief (2026-10-24)
+| Fact | Implication |
 |---|---|
-| Same relationships, different level | Re-calibrate base level (+ trend) only |
-| Some factors differ | Week 1 model as offset + refit selected factors on Week 2 |
-| Limited Week 2 data | Credibility blend: Z × Week2 model + (1−Z) × Week1-transferred model |
-| Rich Week 2 data | Refit full pipeline; Week 1 model as feature/prior; compare |
-| New features | Add to GBM; check stability; GLM only if credible |
-| Missing features | Refit without them; quantify lost lift |
+| Only 2023–2024 history | Very little mature data; 2024 immature (IBNR/IBNER) → effectively one mature year |
+| Most 2025 policies are new business from a broker | Test mix ≠ training mix: `new_business`, `renewal_count`, `ncb_years`, `channel`, `days_quote_to_inception`, `discount_applied`, `written_premium` shift; renewal-driven effects may not transfer |
+| Customers, climate, regulation, costs differ | Relativities, weather response, allowed rating factors, severity level and inflation may all differ |
+| Less data | Credibility is the core tool; Part 1 model as prior/complement |
+| `developed` folder provided for reference | Joint modelling and transfer are allowed and expected |
+| Leaderboard = emerging test only | Score only on emerging rows; but report keeps Week 1 for comparison |
 
-Compare all candidates on Week 2 temporal validation, same as Week 1.
+## 1. Detect what changed (Day 1 — before modelling)
+- [ ] File/schema diff vs developed: new/missing/renamed columns, changed levels, units, currency, ID formats
+- [ ] Data description diff: read the emerging description line by line vs `docs/data_description.md`; record every difference
+- [ ] Definition diff: exposure, claim status codes, excess (levels, compulsory amounts), recoveries, valuation date
+- [ ] Regulation: rating factors absent/forbidden (e.g. credit, age, gender proxies) or capped
+- [ ] Volume and credibility: rows, exposure, claims by line × peril × year
+- [ ] Portfolio mix: train (2023–24) vs test (2025) — especially new business, channel=broker, NCB, renewal_count, region, sum insured
+- [ ] Feature distribution shift: PSI/KS per feature, train-vs-test and developed-vs-emerging; adversarial validation (classifier train vs test) to find what drives the shift
+- [ ] Outcome shift: frequency, severity, burning cost, tail, peril mix, report delay, development pattern vs developed market
+- [ ] Climate: weather variable ranges vs developed (extrapolation outside the developed range?)
+- [ ] Data quality issues specific to emerging data → `logs/data_quality_log.md` (market = w2)
 
-## 3. Communicate uncertainty
-- Low/central/high for level assumptions; D² and total-cost sensitivity
-- Segments with thin data flagged
+## 2. Diagnose transfer (Day 2)
+- [ ] Score the final Week 1 model on emerging 2023–2024 → A/E overall, by line, peril, year, factor level, new vs renewal
+- [ ] Separate **level** (overall A/E, severity scale) from **shape** (relativities that break)
+- [ ] Refit simple emerging-only GLM; compare relativities factor by factor with developed (with CIs) → "carry over / adjust / refit / drop" table
+
+## 3. Adaptation candidates (Day 3–4; human gate G6)
+| # | Candidate | When appropriate |
+|---|---|---|
+| C0 | Emerging-only baseline (constant / simple GLM) | Benchmark |
+| C1 | Developed model + level recalibration (by line, maybe peril) | Shape transfers, level differs |
+| C2 | Developed model as offset + refit selected factors on emerging | Some factors differ |
+| C3 | Credibility blend: Z × emerging model + (1−Z) × recalibrated developed model; Z by line/segment from Bühlmann-type or exposure-based rule | Thin data |
+| C4 | Joint model on developed + emerging with market indicator and market × factor interactions (GLM) or `market` feature (GBM), emerging weighted | Enough emerging data for interactions |
+| C5 | GBM on emerging with developed prediction as feature / init_score | Non-linear differences |
+
+Feature-set changes (carried over from the previous playbook version): **new features** → add to the GBM and check
+stability; use in the GLM only if credible. **Missing features** → refit without them and quantify the lost lift.
+
+Selection: validation train 2023 → validate 2024 (developed-to-ultimate where possible), plus **new-business-only subset** scores
+(test is mostly new business). Prefer the simplest candidate within noise of the best. Bootstrap D² to show the noise band.
+
+## 4. 2025 projection
+- Level: emerging-specific trend/inflation (cost differences); development to ultimate from emerging triangles if credible, otherwise developed patterns scaled — document.
+- New-business loading: check in developed and emerging data whether new business runs worse than renewals (selection effect); apply if supported.
+- Broker portfolio: if the test portfolio's features look unlike the 2023–24 book, flag the segments where predictions extrapolate.
+
+## 5. Communicate uncertainty
+- Low/central/high for each level assumption (trend, development, new-business effect, credibility weight) → effect on total cost and D²
+- Range of totals by line; segments with thin data or extrapolated features flagged
+- Explicit list: what we carried over from Part 1, what we changed, and why
 - What we would do with more time/data
 
-## 4. Evidence for the video/report
-- Before/after table: Week 1 model on Week 2 data vs adapted model
+## 6. Evidence for the video/report
+- Table: Week 1 model on emerging vs adapted candidates (D² overall and new business only, A/E)
 - One chart of the biggest shift found
-- Decision log entries G6
+- Carry-over table (factor → carry / adjust / refit / drop)
+- Decision log entries G6; AI-usage log entries for Week 2 (e.g. AI-proposed shift checks, verified)

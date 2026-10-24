@@ -3,7 +3,14 @@
 This repository is a solo entry to the **IAA AI Hackathon: Actuarial Pricing Across Markets with AI Assistance**.
 Owner / responsible actuary: Suguru Fujita. The AI assistant supports; the human signs off.
 
-Read this file before any work. Then read `docs/00_challenge_brief.md`.
+Read this file before any work. Then read `docs/00_challenge_brief.md` and `docs/data_description.md`
+(Part A = official data description; Part B = actuarial hypotheses on target construction, IBNR, leakage, fairness).
+
+Data location (git-ignored): `data/raw/w1/` = `developed` folder (Part 1), `data/raw/w2/` = `emerging` folder (Part 2).
+Read all `*_id` columns as string.
+
+Week 2 (from 2026-10-24): emerging market, history 2023–2024 only, **2025 test mostly new business from a broker**;
+customers, climate, regulation and costs differ. Follow `docs/05_week2_market_shift.md`. Week 2 leaderboard = emerging rows only.
 
 ## 1. The problem in one paragraph
 
