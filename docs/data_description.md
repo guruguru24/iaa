@@ -1,4 +1,4 @@
-# Data description (Week 1 market)
+# Data description (developed = Week 1; emerging = Week 2 differences in Part C)
 
 Part A is the organisers' description, kept faithful. Part B is our actuarial interpretation: **hypotheses to verify
 against the data**, not facts. Verified results go to `logs/data_quality_log.md` / `logs/assumptions_register.md`.
@@ -274,3 +274,65 @@ Checks before approval:
 - Consider **peril-level models** for buildings and contents (different drivers), summed to row level; compare with a single Tweedie model.
 - Mid-term changes create multiple rows per year → split exposure correctly; grouped CV by `policy_id`.
 - Same customer/address across lines → possible shared risk signal (cross-line features), but keep CV grouped by customer to avoid optimistic validation.
+
+---
+
+# Part C — Emerging market (Week 2): official differences and implications
+
+Source: updated official dataset description (2026-10-24). Folder layout: `developed/` (Part 1, 2021–2024) and
+`emerging/` (Part 2, 2023–2024). **Part 2 predicts the emerging market only.**
+
+## C1. Official statements (new or changed)
+- Data comes "as from an insurer's operational systems: in several linked tables, and **not cleaned**".
+- Target explicitly **includes claims not yet reported or settled** (IBNR + IBNER) — confirms ultimate basis.
+- Prediction is a **total for the row, not an annual rate** (exposure 0.5 = half a year).
+- **The policy excess applies to all perils, including third-party perils.**
+- **Join tables only within the same market folder.** customer/address/policy IDs can repeat across markets for unrelated records.
+  Never join developed to emerging. Test `row_id`s are unique across both markets.
+- sample_submission is CSV (emerging); other files Parquet.
+
+| | Developed | Emerging |
+|---|---|---|
+| Training years | 2021–2024 | 2023–2024 |
+| Weather years | 2021–2024 | 2023–2024 |
+| Regions | R01–R12 | E01–E06 |
+| Claims valued at | 31 Dec 2024 | 31 Dec 2024 |
+
+## C2. Column differences
+| Table | Column | Developed | Emerging |
+|---|---|---|---|
+| customers | date_of_birth | yes | **absent** |
+| customers | gender | absent | **M/F — may be used for pricing in emerging** |
+| customers | occupation | categorical | **free text as entered** (needs cleaning/mapping) |
+| customers | credit_band | A–E | **absent** |
+| addresses | region | R01–R12 | **E01–E06** (no mapping to developed) |
+| motor | driver_age | exact age | **absent** → `driver_age_band`: 17-24, 25-34, 35-49, 50-64, 65+ |
+| motor | annual_mileage | yes | **absent** (not collected) |
+| motor | telematics_opt_in / telematics_score | yes | **absent** (not offered) |
+| buildings, contents | policyholder_age | exact age | **absent** → `policyholder_age_band` (same bands) |
+| buildings | construction_type | brick, stone, timber, non-standard | **BRK, STN, WOD, MIX** (MIX = mixed or non-standard) |
+All other columns are described as the same in both markets (values/distributions may still differ — verify).
+
+## C3. New files (emerging folder)
+| File | One row per | Content |
+|---|---|---|
+| expenses | Cost item | `item`, `developed`, `emerging` (blank if n/a), `unit` (CU / share of premium / share of property risk premium). Items: fixed expense per policy, variable expense, commission by channel, premium tax, catastrophe reinsurance, target profit margin |
+| reference_policies | Policy | 20 emerging 2025 test policies (+ `line`). **Report must show the office premium build-up from our risk premium for each** — judged by panel, not on Kaggle. See `docs/07_office_premium.md` |
+
+## C4. Implications (hypotheses to verify)
+1. **Harmonised feature set for transfer**: build a developed model on features available in both markets only
+   (age → same bands; construction mapped brick→BRK, stone→STN, timber→WOD, non-standard→MIX; drop credit, mileage, telematics, exact age;
+   region excluded or replaced by address-level physical/weather features). Quantify the lift lost vs the full Week 1 model.
+2. **Region** cannot transfer (different codes) → explain geography with flood_zone, elevation, distance_to_river, soil, urban_density,
+   weather; region effect in emerging estimated with credibility (6 regions, 2 years).
+3. **Gender** is permitted in emerging: test for lift and stability; document the regulatory difference and the decision (gate G4).
+   Developed has no gender → no prior; credibility-weight toward 1.0.
+4. **Occupation free text**: normalise (case, spaces, typos, synonyms) → map to developed occupation list where possible; log mapping
+   quality (AI can propose the mapping — **human verifies a sample**, log in AI usage log).
+5. **"Not cleaned"**: expect inconsistent codes, typos, out-of-range values, duplicates, date issues → run the full EDA checklist §1 on emerging.
+6. **Excess on third-party perils**: target construction must not add excess back for TP perils; check paid/incurred vs excess on TP claims in both markets.
+7. **Combining markets**: if stacked for a joint model, prefix IDs with market (`dev_`, `emg_`) and keep a `market` column; grouped CV keys per market.
+8. **Weather**: only 2023–2024 → address-level 2-year averages; compare ranges with developed (extrapolation risk for climate-driven perils).
+9. **Development**: only accident years 2023–2024 in emerging → development patterns from developed (by line/peril) probably needed;
+   check emerging report delays vs developed before borrowing (gate G3).
+10. **New business 2025**: broker portfolio → check test mix (channel, new_business, renewal_count, NCB) vs training; validate on new-business subset.

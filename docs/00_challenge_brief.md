@@ -22,6 +22,8 @@ Part 1 title: *Create a pricing model for a novel market as well as a pricing to
 - The new market will not necessarily behave like Part 1: **less data; customers, climate, regulation and costs differ**.
 - Show: how we **identify what has changed**, **decide what to carry over from Part 1**, and **communicate remaining uncertainty**.
 - Week 2 leaderboard: submit predictions for the **emerging-market test data only**.
+- Extra (panel-judged, not Kaggle): **office premium build-up** for 20 `reference_policies` using `expenses` → `docs/07_office_premium.md`.
+- Data description and column differences: `docs/data_description.md` Part C.
 
 ## Target definition
 Ultimate cost of all claims with loss date in the row's period, **net of excess**, **net of recoveries**,

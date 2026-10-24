@@ -10,6 +10,8 @@ Graded explicitly: **identify what changed**, **decide what to carry over from P
 | Customers, climate, regulation, costs differ | Relativities, weather response, allowed rating factors, severity level and inflation may all differ |
 | Less data | Credibility is the core tool; Part 1 model as prior/complement |
 | `developed` folder provided for reference | Joint modelling and transfer are allowed and expected |
+| Columns differ (no exact age, credit, mileage, telematics; gender allowed; free-text occupation; regions E01–E06; construction codes) — see `data_description.md` Part C | Transfer via a **harmonised developed model** on common features; quantify lift lost |
+| Data not cleaned; IDs collide across markets | Full EDA §1 on emerging; never join across markets; prefix IDs if stacking |
 | Leaderboard = emerging test only | Score only on emerging rows; but report keeps Week 1 for comparison |
 
 ## 1. Detect what changed (Day 1 — before modelling)

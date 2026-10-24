@@ -10,7 +10,10 @@ Data location (git-ignored): `data/raw/w1/` = `developed` folder (Part 1), `data
 Read all `*_id` columns as string.
 
 Week 2 (from 2026-10-24): emerging market, history 2023–2024 only, **2025 test mostly new business from a broker**;
-customers, climate, regulation and costs differ. Follow `docs/05_week2_market_shift.md`. Week 2 leaderboard = emerging rows only.
+customers, climate, regulation and costs differ. Follow `docs/05_week2_market_shift.md` and `docs/data_description.md` Part C (column differences:
+no exact age/credit/mileage/telematics; gender allowed; occupation free text; regions E01–E06; data not cleaned).
+**Join tables only within the same market; IDs collide across markets.** Week 2 leaderboard = emerging rows only.
+Also required: office premium build-up for 20 `reference_policies` using `expenses` → `docs/07_office_premium.md`.
 
 ## 1. The problem in one paragraph
 
