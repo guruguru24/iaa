@@ -26,3 +26,16 @@ def test_level_check():
     assert out["pred_bc"] == pytest.approx(115.5)
     assert out["trended_bc_2024"] == pytest.approx(115.5)
     assert out["pred_vs_2024_trended"] == pytest.approx(1.0)
+
+
+def test_nb_loading_only_new_business_rows():
+    from src.pipeline_w2 import nb_loading
+    out = nb_loading(np.array([100.0, 100.0, 100.0]), pd.Series([True, False, None]), 1.25)
+    assert out.tolist() == [125.0, 100.0, 100.0]
+
+
+def test_common_features_exclude_market_specific():
+    from src.pipeline_w2 import common_features
+    dev = pd.DataFrame({"region": ["R01"], "credit_band": ["A"], "driver_age_band": ["17-24"], "ncb_years": [3]})
+    emg = pd.DataFrame({"region": ["E01"], "gender": ["F"], "driver_age_band": ["17-24"], "ncb_years": [3]})
+    assert common_features(dev, emg) == ["driver_age_band", "ncb_years"]
