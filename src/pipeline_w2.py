@@ -6,7 +6,8 @@ Per line:
   C1 (motor, contents): harmonised developed GLM+GBM blend (developed 2021-24, on-levelled to 2025) x emerging level
                         (actual / predicted on emerging 2023-24, both on-levelled to 2025)
   C4 (buildings):       joint GLM+GBM on developed + emerging with a `market` feature, emerging rows up-weighted
-New-business loading multiplies new-business test rows (central 1.0; low/high written as sensitivity files).
+New-business loading multiplies new-business test rows (config `w2.new_business_loading`, central 1.25 per decision #31;
+low/high written as sensitivity files).
 Never joins across markets; joint fits prefix IDs with the market. Never submits (G5).
 """
 from __future__ import annotations
