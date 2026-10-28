@@ -52,7 +52,7 @@ def add_features(df: pd.DataFrame, line: str, addresses: pd.DataFrame, customers
     out["excess_total"] = out["voluntary_excess"] + out["compulsory_excess"]
     if "sum_insured" in out:
         out["si_per_bedroom"] = out["sum_insured"] / out["bedrooms"].clip(lower=1)
-    if line == "motor":
+    if line == "motor" and "telematics_score" in out:          # emerging motor has no telematics (Part C2)
         out["telematics_missing"] = out["telematics_score"].isna()
     if line == "buildings":
         out["timber_post2023"] = out["construction_type"].eq("timber") & (out["policy_year"] >= 2023)  # decision #5

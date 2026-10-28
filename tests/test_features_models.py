@@ -236,3 +236,11 @@ def test_glm_reuses_encoder_for_comparable_coefficients():
     ga = TweedieGLM(["seg"]).fit(a, "target")
     gb = TweedieGLM(["seg"]).fit(b, "target", encoder=ga.enc_)
     assert gb.enc_ is ga.enc_ and list(gb.relativities().index) == list(ga.relativities().index)
+
+
+def test_add_features_motor_without_telematics():
+    rows = pd.DataFrame({"row_id": ["M1"], "customer_id": ["c1"], "address_id": ["a1"], "period_start": [pd.Timestamp("2024-01-01")],
+                         "voluntary_excess": [0], "compulsory_excess": [250]})
+    out = add_features(rows, "motor", pd.DataFrame({"address_id": ["a1"], "year_built": [2000]}),
+                       pd.DataFrame({"customer_id": ["c1"], "customer_since_year": [2020]}))
+    assert "telematics_missing" not in out and out["excess_total"].iloc[0] == 250
