@@ -7,11 +7,13 @@ home buildings and home contents, then adapts to a new market (Week 2), with an 
 | Path | Content |
 |---|---|
 | `CLAUDE.md` | Instructions for AI assistants working in this repo (rules, workflow, review gates) |
-| `docs/00–06` | Brief, EDA checklist, modelling standards, validation & guardrails, governance, Week 2 playbook, report/video outline |
+| `docs/00–07` | Brief, EDA checklist, modelling standards, validation & guardrails, governance, Week 2 playbook, report/video outline, office premium |
 | `logs/` | AI usage log, decision log, data quality log, assumptions register |
-| `src/` | Pipeline code (data, target, features, models, validation, projection, submission) |
+| `src/` | Pipeline code (data, target, development, trend, features, models, validation, Week 2 pipeline, office premium, submission) |
 | `tests/` | pytest suite |
-| `notebooks/` | EDA and reporting notebooks (call `src/`) |
+| `scripts/` | Owner-run analysis scripts (validation, diagnostics, market shift, candidates) printing compact evidence |
+| `app/` | Streamlit pricing tool |
+| `docs/report/` | Write-up and video script |
 | `configs/config.yaml` | Seeds, paths, assumptions, hyper-parameters |
 | `data/` | Raw/processed data (git-ignored) |
 | `outputs/` | Submissions, models, reports |
