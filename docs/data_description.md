@@ -239,9 +239,12 @@ Checks before approval:
 ## B3. Matching test periods
 - Test rows are 2025 policy periods with their own `exposure`; prediction = expected cost for that row (scale with exposure).
 - `renewal_decision` is absent in test (outcome information).
-- Weather is by address × year: **2025 weather is not given** (verify) → for test, use long-run address averages or latest year; for training,
-  using actual-year weather would leak event information unavailable at pricing time. Prefer address-level averages
-  (or lagged values) in both training and test — document the choice.
+- Weather is by address × year. *Corrected after checking the data (DQ14):* the hypothesis "2025 weather is not given"
+  was wrong — the weather table **does contain 2025** (developed 2021–2025, emerging 2023–2025). Those values are the
+  realised 2025 weather, which is unknown when the 2025 policies are priced, so using them would leak future events.
+  Decision #19: both training and test use address-level **long-run averages over the training years only**
+  (developed 2021–2024; emerging 2023–2024; config `weather_years` / `w2.train_years`); same-year weather is kept only
+  as a sensitivity.
 
 ## B4. Leakage and feature-use review
 | Feature | Risk | Default treatment |
@@ -297,6 +300,8 @@ Source: updated official dataset description (2026-10-24). Folder layout: `devel
 | Weather years | 2021–2024 | 2023–2024 |
 | Regions | R01–R12 | E01–E06 |
 | Claims valued at | 31 Dec 2024 | 31 Dec 2024 |
+
+Verified on data: the weather files also contain a 2025 year in both markets (realised weather; not used, see B3).
 
 ## C2. Column differences
 | Table | Column | Developed | Emerging |
