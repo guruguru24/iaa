@@ -68,8 +68,8 @@ def fit_line(line: str, cfg: dict, data: dict) -> dict:
     te = test_frame(line, "w2", refs=data["emg_refs"], weather_mode="long_run", weather_years=w2["train_years"])
     dev, emg = onlevel(dev, cap, to_year, g), onlevel(emg, cap, to_year, g)
     feats = common_features(dev, emg)
-    info = {"line": line, "method": method, "trend": g, "cap": cap, "n_features": len(feats), "gbm_seeds": len(seeds)}
     seeds = [cfg["seed"] + i for i in range(int(w2.get("gbm_seeds", 1)))]
+    info = {"line": line, "method": method, "trend": g, "cap": cap, "n_features": len(feats), "gbm_seeds": len(seeds)}
     if method == "C1":
         glm = TweedieGLM(feats).fit(dev, capped, loading_target="target_dev")
         gbm = seed_average(lambda s: _gbm(feats, spec, s), dev, capped, seeds, loading_target="target_dev")
