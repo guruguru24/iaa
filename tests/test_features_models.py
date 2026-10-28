@@ -244,3 +244,10 @@ def test_add_features_motor_without_telematics():
     out = add_features(rows, "motor", pd.DataFrame({"address_id": ["a1"], "year_built": [2000]}),
                        pd.DataFrame({"customer_id": ["c1"], "customer_since_year": [2020]}))
     assert "telematics_missing" not in out and out["excess_total"].iloc[0] == 250
+
+
+def test_weight_col_multiplies_weights():
+    from src.models import fit_weights
+    df = pd.DataFrame({"policy_year": [2023, 2024], "exposure": [1.0, 0.5], "m": [5.0, 1.0]})
+    assert fit_weights(df, weight_col="m").tolist() == [5.0, 0.5]
+    assert fit_weights(df, weight_col="m", recency=0.5, ref_year=2024).tolist() == [2.5, 0.5]

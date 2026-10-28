@@ -14,9 +14,12 @@ from src.features import BandEncoder
 
 
 def fit_weights(df: pd.DataFrame, exposure: str = "exposure", recency: float | None = None,
-                ref_year: int | None = None) -> np.ndarray:
-    """Exposure weights, optionally decayed by age: exposure * recency ** (ref_year - policy_year)."""
+                ref_year: int | None = None, weight_col: str | None = None) -> np.ndarray:
+    """Exposure weights, optionally decayed by age (exposure * recency ** (ref_year - policy_year)) and multiplied
+    by a per-row column (e.g. up-weighting emerging rows in a joint fit)."""
     w = df[exposure].to_numpy(dtype=float)
+    if weight_col is not None:
+        w = w * df[weight_col].to_numpy(dtype=float)
     if recency is None or recency == 1.0:
         return w
     return w * recency ** (ref_year - df["policy_year"].to_numpy(dtype=float))
@@ -36,13 +39,14 @@ class TweedieGLM:
         self.factors, self.power, self.alpha, self.n_bins = list(factors), power, alpha, n_bins
 
     def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure", loading_target: str | None = None,
-            recency: float | None = None, ref_year: int | None = None, encoder: BandEncoder | None = None):
+            recency: float | None = None, ref_year: int | None = None, encoder: BandEncoder | None = None,
+            weight_col: str | None = None):
         """encoder: reuse another fit's bands and base levels (coefficients then compare level by level)."""
         self.enc_ = encoder if encoder is not None else BandEncoder(self.n_bins).fit(df, self.factors)
         X = self.enc_.transform(df)
         w = df[exposure].to_numpy()
         self.glm_ = TweedieRegressor(power=self.power, link="log", alpha=self.alpha, solver="newton-cholesky", max_iter=200)
-        self.glm_.fit(X, df[target].to_numpy() / w, sample_weight=fit_weights(df, exposure, recency, ref_year))
+        self.glm_.fit(X, df[target].to_numpy() / w, sample_weight=fit_weights(df, exposure, recency, ref_year, weight_col))
         self.train_balance_ = df[target].sum() / (self.glm_.predict(X) * w).sum()  # diagnostic only, not applied
         self.loading_ = 1.0 if loading_target is None else df[loading_target].sum() / df[target].sum()
         return self
@@ -80,7 +84,8 @@ class LGBMTweedie:
         return X
 
     def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure", loading_target: str | None = None,
-            group: str = "policy_id", recency: float | None = None, ref_year: int | None = None):
+            group: str = "policy_id", recency: float | None = None, ref_year: int | None = None,
+            weight_col: str | None = None):
         import lightgbm as lgb
         self.cats_ = {}
         for c in self.factors:
@@ -90,7 +95,7 @@ class LGBMTweedie:
         X = self._X(df)
         w = df[exposure].to_numpy()
         y = df[target].to_numpy() / w
-        w = fit_weights(df, exposure, recency, ref_year)   # level is restored by the balance step below
+        w = fit_weights(df, exposure, recency, ref_year, weight_col)   # level is restored by the balance step below
         if self.stop == "time":
             hold = (df["policy_year"] == df["policy_year"].max()).to_numpy()
         else:
