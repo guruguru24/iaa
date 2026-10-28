@@ -22,7 +22,7 @@ from src.dataset import onlevel_factor, reference_tables, test_frame, train_fram
 from src.development import development_factors
 from src.features import feature_columns, harmonise_ages
 from src.history import HIST_COLS
-from src.models import LGBMTweedie, TweedieGLM
+from src.models import LGBMTweedie, TweedieGLM, seed_average
 from src.pipeline import build_submission, gbm_spec
 from src.submission import check_submission, write_submission
 
@@ -68,11 +68,12 @@ def fit_line(line: str, cfg: dict, data: dict) -> dict:
     te = test_frame(line, "w2", refs=data["emg_refs"], weather_mode="long_run", weather_years=w2["train_years"])
     dev, emg = onlevel(dev, cap, to_year, g), onlevel(emg, cap, to_year, g)
     feats = common_features(dev, emg)
-    info = {"line": line, "method": method, "trend": g, "cap": cap, "n_features": len(feats)}
+    info = {"line": line, "method": method, "trend": g, "cap": cap, "n_features": len(feats), "gbm_seeds": len(seeds)}
+    seeds = [cfg["seed"] + i for i in range(int(w2.get("gbm_seeds", 1)))]
     if method == "C1":
         glm = TweedieGLM(feats).fit(dev, capped, loading_target="target_dev")
-        gbm = _gbm(feats, spec, cfg["seed"]).fit(dev, capped, loading_target="target_dev")
-        pred = lambda d: 0.5 * glm.predict(d) + 0.5 * gbm.predict(d)
+        gbm = seed_average(lambda s: _gbm(feats, spec, s), dev, capped, seeds, loading_target="target_dev")
+        pred = lambda d: 0.5 * glm.predict(d) + 0.5 * gbm(d)
         level = emg["target_dev"].sum() / pred(emg).sum()
         p = pred(te) * level
         info["emerging_level"] = level
@@ -83,8 +84,8 @@ def fit_line(line: str, cfg: dict, data: dict) -> dict:
                        emg.assign(market="emerging", w_mult=k, policy_id="emg_" + emg["policy_id"].astype(str))], ignore_index=True)
         jf = feats + ["market"]
         glm = TweedieGLM(jf).fit(j, capped, loading_target="target_dev", weight_col="w_mult")
-        gbm = _gbm(jf, spec, cfg["seed"], stop="policy").fit(j, capped, loading_target="target_dev", weight_col="w_mult")
-        pred = lambda d: 0.5 * glm.predict(d.assign(market="emerging")) + 0.5 * gbm.predict(d.assign(market="emerging"))
+        gbm = seed_average(lambda s: _gbm(jf, spec, s, stop="policy"), j, capped, seeds, loading_target="target_dev", weight_col="w_mult")
+        pred = lambda d: 0.5 * glm.predict(d.assign(market="emerging")) + 0.5 * gbm(d.assign(market="emerging"))
         # the joint fit is balanced on both markets together, so its emerging level leans to developed: move it part of
         # the way to emerging's own actuals with credibility Z (decision #28)
         ae = float(emg["target_dev"].sum() / pred(emg).sum())
