@@ -105,3 +105,16 @@ class BandEncoder:
             rows = np.flatnonzero(idx >= 0)
             blocks.append(sp.csr_matrix((np.ones(len(rows)), (rows, idx[rows])), shape=(len(df), len(self.levels_[f]))))
         return sp.hstack(blocks).tocsr()
+
+
+AGE_BANDS = ([-np.inf, 24, 34, 49, 64, np.inf], ["17-24", "25-34", "35-49", "50-64", "65+"])
+AGE_BAND_SOURCES = {"driver_age": "driver_age_band", "policyholder_age": "policyholder_age_band"}
+
+
+def harmonise_ages(df: pd.DataFrame) -> pd.DataFrame:
+    """Developed exact ages -> the emerging market's age bands (data_description Part C2). No-op if already banded."""
+    out = df.copy()
+    for src, dst in AGE_BAND_SOURCES.items():
+        if src in out and dst not in out:
+            out[dst] = pd.cut(out[src], AGE_BANDS[0], labels=AGE_BANDS[1]).astype("object")
+    return out

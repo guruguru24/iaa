@@ -32,15 +32,21 @@ def _add_history(target: pd.DataFrame, all_rows: pd.DataFrame, claims: pd.DataFr
 
 
 def train_frame(line: str, market: str = "w1", caps=(None,), scenario: str = "central", claims=None,
-                refs=None, weather_mode: str = "same_year", weather_years=None, history: bool = False) -> pd.DataFrame:
-    """Train rows with features and targets: target_dev (uncapped) and target_dev_cap{cap} per requested cap."""
-    cfg = load_config()["assumptions"]["development"]
+                refs=None, weather_mode: str = "same_year", weather_years=None, history: bool = False,
+                dev_factors: pd.DataFrame | None = None, dev_cfg: dict | None = None) -> pd.DataFrame:
+    """Train rows with features and targets: target_dev (uncapped) and target_dev_cap{cap} per requested cap.
+
+    dev_factors / dev_cfg override the development factors and settings (e.g. the emerging market borrows the
+    developed market's reporting patterns because it has no mature accident years).
+    """
+    cfg = dev_cfg or load_config()["assumptions"]["development"]
     claims = load_claims(market) if claims is None else claims
     refs = reference_tables(market) if refs is None else refs
     rows = line_frame(line, market, claims)          # applies approved G2 feature fixes
     rows["exposure"] = rows["exposure_dates"]         # approved G2 exposure rule
     cf = claim_frame(line, rows, claims)
-    yf = year_dev_factors(developed_table(cf, development_factors(claims, cfg["mature_years"]), cfg, scenario))
+    factors = dev_factors if dev_factors is not None else development_factors(claims, cfg["mature_years"])
+    yf = year_dev_factors(developed_table(cf, factors, cfg, scenario))
     rows["target_dev"] = apply_to_rows(rows, line, yf)
     for cap in caps:
         if cap is not None:

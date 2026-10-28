@@ -36,8 +36,9 @@ class TweedieGLM:
         self.factors, self.power, self.alpha, self.n_bins = list(factors), power, alpha, n_bins
 
     def fit(self, df: pd.DataFrame, target: str, exposure: str = "exposure", loading_target: str | None = None,
-            recency: float | None = None, ref_year: int | None = None):
-        self.enc_ = BandEncoder(self.n_bins).fit(df, self.factors)
+            recency: float | None = None, ref_year: int | None = None, encoder: BandEncoder | None = None):
+        """encoder: reuse another fit's bands and base levels (coefficients then compare level by level)."""
+        self.enc_ = encoder if encoder is not None else BandEncoder(self.n_bins).fit(df, self.factors)
         X = self.enc_.transform(df)
         w = df[exposure].to_numpy()
         self.glm_ = TweedieRegressor(power=self.power, link="log", alpha=self.alpha, solver="newton-cholesky", max_iter=200)

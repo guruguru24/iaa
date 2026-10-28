@@ -221,3 +221,18 @@ def test_simplex_weights_prefers_the_informative_model():
     assert w["good"] > 0.6
     blended = apply_weights(preds, w)
     assert evaluate(y, blended)["d2"] >= evaluate(y, preds["flat"])["d2"]
+
+
+def test_harmonise_ages_matches_emerging_bands():
+    from src.features import harmonise_ages
+    out = harmonise_ages(pd.DataFrame({"driver_age": [17, 24, 25, 49, 50, 64, 65, 90]}))
+    assert out["driver_age_band"].tolist() == ["17-24", "17-24", "25-34", "35-49", "50-64", "50-64", "65+", "65+"]
+    already = pd.DataFrame({"driver_age_band": ["65+"]})
+    assert harmonise_ages(already).equals(already)
+
+
+def test_glm_reuses_encoder_for_comparable_coefficients():
+    a, b = _toy(seed=1), _toy(seed=2)
+    ga = TweedieGLM(["seg"]).fit(a, "target")
+    gb = TweedieGLM(["seg"]).fit(b, "target", encoder=ga.enc_)
+    assert gb.enc_ is ga.enc_ and list(gb.relativities().index) == list(ga.relativities().index)
