@@ -41,6 +41,6 @@ w2:   # Week 2 emerging market, gate G6 (decision #27)
   c4_level_credibility: 0.5                                 # C4 level x (Z * emerging A/E + 1 - Z), decision #28
   development: borrowed_from_developed                      # same reporting delays / open shares (DQ22); no BI override
   trend: same_as_developed_central                          # provisional, G3
-  new_business_loading: {low: 0.9, central: 1.0, high: 1.25}
+  new_business_loading: {low: 1.0, central: 1.25, high: 1.5}   # decision #31 (was 0.9 / 1.0 / 1.25)
   excluded_emerging_only_features: [gender, self_employed]  # no lift in validation; fairness (G4)
 
