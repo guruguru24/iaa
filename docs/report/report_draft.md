@@ -64,7 +64,7 @@ Adopted: caps 100k/100k/25k; contents GBM c7 (+0.0018/+0.0017). Rejected: recenc
 written premium as a feature, raw make_model, prior-claims features v1/v2, stacking (unstable weights).
 Leaderboard-informed (documented as such): long-run instead of same-year weather (+0.0011 LB; also the principled
 choice — realised weather is unknown at pricing); near-pass buildings c7 and experience modifier (b3, public +0.0004,
-the two effects adding up). Final selection: validated model (b) plus b3 (Kaggle scores the better of the two); step-by-step scores in Appendix A.
+the two effects adding up; a pre-registered re-test on the final model confirmed the modifier as a near-pass: +0.0002 to +0.0011 in all six cells, only motor 2024 ≥ 0.001). Final selection: validated model (b) plus b3 (Kaggle scores the better of the two); step-by-step scores in Appendix A.
 
 **Limitations.** 2024 "actuals" are developed estimates; IBNER assumed 1.0 (±10–30% on long-tail perils); single-year
 validation folds; motor validation A/E 0.95–0.98; credit band is a fairness-sensitive factor.
@@ -143,7 +143,7 @@ adaptation), and to log every contribution (`logs/ai_usage_log.md`, 16 entries; 
    motor slipped through. In a second case, an output filter hid a crash. Both were fixed before submission, and
    every run now records its exit status.
 
-**Verification.** Every AI-written transform has a unit test (64 tests, incl. leakage property tests); every claim about
+**Verification.** Every AI-written transform has a unit test (65 tests, incl. leakage property tests); every claim about
 the data was re-run by the owner on full data; owner-run scripts print compact evidence.
 
 ## 4. Trust, validation & guardrails
@@ -212,7 +212,9 @@ Current pricing may not reflect the flood exposure or the missing flood zone (DQ
     replace the leaderboard-informed loading as soon as data arrive.
   - The emerging trend and IBNER should be re-estimated once a third year is available.
 - **Open items:**
-  - Pre-registered re-test of the experience modifier on the final model (deferred for time).
+  - Experience modifier for emerging motor: on emerging validation the gain is +0.0019 (median), with the bootstrap 5th
+    percentile just above zero (+0.0001); new business is treated as history unknown. Not used in the Week 2 finals;
+    to be confirmed on 2025 renewals.
   - Per-peril models (frequency learned, severity barely).
   - Longer development history for IBNER.
   - Fairness review of credit band before any production use (gender was not used in Week 2).

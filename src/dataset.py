@@ -11,7 +11,7 @@ from src.data import exposure_from_dates, load_claims, load_config, load_policie
 from src.development import apply_to_rows, developed_table, development_factors, year_dev_factors
 from src.eda import claim_frame, line_frame
 from src.features import add_features, weather_features
-from src.history import history_features, policy_customer_map
+from src.history import DATA_START_BY_MARKET, history_features, policy_customer_map
 from src.preprocess import clean_customers, preprocess, sum_insured_reference
 from src.trend import row_capped_target
 
@@ -22,12 +22,13 @@ def onlevel_factor(policy_year: pd.Series, to_year: int, annual_trend: float) ->
 
 def reference_tables(market: str = "w1") -> dict:
     return {"addresses": load_table("addresses", market), "customers": clean_customers(load_table("customers", market)),
-            "weather": load_table("weather", market), "policy_customer": policy_customer_map(market)}
+            "weather": load_table("weather", market), "policy_customer": policy_customer_map(market),
+            "data_start": DATA_START_BY_MARKET[market]}
 
 
 def _add_history(target: pd.DataFrame, all_rows: pd.DataFrame, claims: pd.DataFrame, refs: dict) -> pd.DataFrame:
     """Join prior-claims features computed over `all_rows` (every row that can precede the target rows)."""
-    h = history_features(all_rows, claims, refs["policy_customer"])
+    h = history_features(all_rows, claims, refs["policy_customer"], refs.get("data_start", DATA_START_BY_MARKET["w1"]))
     return target.merge(h, on="row_id", how="left")
 
 

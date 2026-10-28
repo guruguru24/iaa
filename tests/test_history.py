@@ -71,3 +71,10 @@ def test_no_same_period_leakage_on_random_data():
     obs = h[h.period_start >= D("2022-01-01")]
     assert (obs["hist_claims_1y"] == exp.reindex(obs.index).fillna(0).values).all()
     assert h.loc[h.period_start < D("2022-01-01"), "hist_claims_1y"].isna().all()
+
+
+def test_emerging_data_start_makes_first_year_unobservable():
+    from src.history import DATA_START_BY_MARKET
+    h = history_features(_rows(), _claims(), _map(), DATA_START_BY_MARKET["w2"]).set_index("row_id")
+    # with data starting 2023, the 2023 rows have no observable 1y window -> NaN, not claim-free
+    assert h.loc[["M3", "X1"], "hist_claims_1y"].isna().all()

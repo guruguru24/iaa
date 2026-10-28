@@ -26,6 +26,7 @@ WINDOWS = {"1y": 365, "2y": 730}
 HIST_COLS = [f"{f}_{w}" for w in WINDOWS for f in ("hist_claims", "hist_exposure", "hist_declined", "cust_other")]
 HIST_DIAG_COLS = ["hist_all_claims", "hist_all_exposure"]
 DATA_START = pd.Timestamp("2021-01-01")
+DATA_START_BY_MARKET = {"w1": DATA_START, "w2": pd.Timestamp("2023-01-01")}   # emerging history starts 2023
 
 
 def policy_customer_map(market: str = "w1") -> pd.DataFrame:
