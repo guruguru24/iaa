@@ -63,4 +63,5 @@ criteria above, not on either leaderboard alone.**
 
 ## Timeline
 - 2026-10-19: Week 1 started (4 days left at that point)
-- 2026-10-24: Week 2 started; 7 days to final close (exact deadline and submission form link: TO CONFIRM)
+- 2026-10-24: Week 2 started
+- **Final submission deadline: 2026-10-30 23:59:59 EDT** (= 2026-10-31 12:59:59 JST), confirmed by the owner 2026-10-29

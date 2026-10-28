@@ -1,0 +1,148 @@
+line,factor,levels,credible_levels,median_ratio_dev_to_emg,verdict
+buildings,accidental_damage_cover,1,1,1.006778321102781,carry over
+buildings,basement,1,1,1.0771257199185713,carry over
+buildings,bedrooms,6,2,1.3502234534671635,refit on emerging
+buildings,channel,2,1,1.003445389038688,carry over
+buildings,construction_type,3,2,1.1853478818696563,adjust
+buildings,customer_tenure,8,6,1.0846722736944792,carry over
+buildings,days_quote_to_inception,8,4,1.2660729891765194,adjust
+buildings,days_unoccupied,10,6,1.3466568921866278,refit on emerging
+buildings,distance_to_river_km,10,2,1.033621035784863,carry over
+buildings,dry_summer_index_lr,9,5,1.1129632369341385,adjust
+buildings,elevation_m,9,5,1.3591703422637766,refit on emerging
+buildings,energy_rating,7,5,1.3430400356459433,refit on emerging
+buildings,excess_total,3,2,1.045269948423812,carry over
+buildings,flood_zone,5,1,1.068824969118649,carry over
+buildings,freezing_days_lr,9,5,1.102030145130066,adjust
+buildings,hail_days_lr,9,1,1.587043142207646,refit on emerging
+buildings,household_size,7,3,1.0780302273332296,carry over
+buildings,licence_points,3,1,1.0067313243184657,weak (little effect in both)
+buildings,listed_building,1,0,,carry over
+buildings,marital_status,4,2,1.2797132423324233,adjust
+buildings,mean_temperature_c_lr,9,4,1.7509865661113002,refit on emerging
+buildings,missed_payments_12m,7,0,,carry over
+buildings,mortgage,1,1,1.1396124250680504,adjust
+buildings,new_business,1,0,,carry over
+buildings,occupancy,1,1,1.0352845280406484,carry over
+buildings,occupation,20,1,1.3794188543049208,refit on emerging
+buildings,payment_method,1,1,1.0241920329961332,carry over
+buildings,policyholder_age_band,4,4,1.279460243107092,adjust
+buildings,previous_insurer,39,0,,carry over
+buildings,prior_claims_5y,5,1,1.0446222636216311,carry over
+buildings,property_age,9,4,1.2779987946958007,adjust
+buildings,property_type,3,3,1.1606147077933484,adjust
+buildings,rainfall_mm_lr,9,3,1.1307418535884208,adjust
+buildings,renewal_count,8,6,1.084672273694459,carry over
+buildings,roof_type,2,1,1.2341228543876333,adjust
+buildings,si_per_bedroom,9,4,1.530513571754282,refit on emerging
+buildings,smoke_alarms,2,2,1.177933155655057,adjust
+buildings,soil_type,5,5,1.1135765595832923,adjust
+buildings,solar_panels,1,1,1.2918410839462862,adjust
+buildings,sum_insured,9,5,2.366476702905225,refit on emerging
+buildings,timber_post2023,1,1,1.201181283067814,adjust
+buildings,trees_within_5m,1,1,1.1912409139953823,adjust
+buildings,urban_density,3,2,1.0324508351295898,weak (little effect in both)
+buildings,voluntary_excess,3,2,1.0452699484238273,carry over
+buildings,wildfire_index_lr,9,1,2.0010646259740854,refit on emerging
+buildings,wind_exposure_index_lr,9,4,1.2812154605326693,adjust
+buildings,years_at_address,10,2,1.3613745758367297,refit on emerging
+contents,accidental_damage_cover,1,1,1.1931014516203362,adjust
+contents,basement,1,1,1.06896015095168,weak (little effect in both)
+contents,bedrooms,6,2,1.0238690030761406,carry over
+contents,bicycle_cover,1,1,1.0875097701663605,carry over
+contents,channel,2,1,1.038238969431936,carry over
+contents,customer_tenure,8,5,1.0251934884735763,carry over
+contents,days_quote_to_inception,8,3,1.0643558321327198,carry over
+contents,distance_to_river_km,10,2,1.1895848413798151,adjust
+contents,dry_summer_index_lr,9,5,1.1075949764451942,adjust
+contents,elevation_m,9,2,1.1474113842594498,adjust
+contents,energy_rating,7,5,1.1772843658087855,adjust
+contents,excess_total,3,1,1.0728257748078318,carry over
+contents,flood_zone,5,1,1.385355524402392,refit on emerging
+contents,freezing_days_lr,9,5,1.0596217519299984,carry over
+contents,hail_days_lr,9,1,2.0978521349908483,refit on emerging
+contents,high_value_items,6,3,1.3624612060565315,refit on emerging
+contents,household_size,7,3,1.1898337211310637,adjust
+contents,licence_points,3,1,1.053215217033758,carry over
+contents,listed_building,1,0,,weak (little effect in both)
+contents,lodgers,1,0,,carry over
+contents,marital_status,4,2,1.1343120226217231,adjust
+contents,mean_temperature_c_lr,9,5,1.137770330814147,adjust
+contents,missed_payments_12m,7,0,,carry over
+contents,new_business,1,1,1.2095285086701208,adjust
+contents,occupation,20,1,1.1566069141551376,adjust
+contents,payment_method,1,1,1.0074174606527233,carry over
+contents,policyholder_age_band,4,4,1.2638708208760594,adjust
+contents,previous_insurer,39,0,,carry over
+contents,prior_claims_5y,5,1,1.0629416485974557,carry over
+contents,property_age,9,1,1.0864055416961012,carry over
+contents,property_type,3,3,1.0515604671156686,carry over
+contents,rainfall_mm_lr,9,3,1.4151409501448582,refit on emerging
+contents,renewal_count,8,5,1.0251934884735776,carry over
+contents,roof_type,2,1,1.2595047047945,adjust
+contents,security_level,3,3,1.0496027594707789,carry over
+contents,si_per_bedroom,9,3,1.303613562357133,refit on emerging
+contents,soil_type,5,5,1.1813646805815436,adjust
+contents,solar_panels,1,0,,weak (little effect in both)
+contents,sum_insured,9,3,1.08393858234562,carry over
+contents,tenure,1,1,1.2187897341267286,adjust
+contents,trees_within_5m,1,0,,weak (little effect in both)
+contents,urban_density,3,3,1.2155775282530115,adjust
+contents,voluntary_excess,3,1,1.0728257748078396,carry over
+contents,wildfire_index_lr,9,1,5.0318828733280565,refit on emerging
+contents,wind_exposure_index_lr,9,5,1.1329751997162714,adjust
+contents,works_from_home,1,1,1.3773383911256074,refit on emerging
+contents,years_at_address,10,3,1.283416217483824,adjust
+motor,basement,1,1,1.0227893056077404,weak (little effect in both)
+motor,bedrooms,6,4,1.0751042612313124,carry over
+motor,body_type,4,4,1.063812451274825,carry over
+motor,channel,2,2,1.025813494168129,carry over
+motor,cover_type,2,2,1.1124793808956894,adjust
+motor,customer_missing,1,0,,carry over
+motor,customer_tenure,9,8,1.1079197726453163,adjust
+motor,days_quote_to_inception,8,8,1.1107410109794835,adjust
+motor,distance_to_river_km,10,10,1.2461232309556662,adjust
+motor,driver_age_band,4,4,1.175311206860032,adjust
+motor,driver_assist,1,1,1.0547090315585907,carry over
+motor,dry_summer_index_lr,9,6,1.0883315455326692,carry over
+motor,elevation_m,9,9,1.181399229967139,adjust
+motor,energy_rating,7,7,1.0623745819210881,carry over
+motor,engine_size_cc,10,10,1.1000427105868942,adjust
+motor,excess_total,3,3,1.0193250424619869,carry over
+motor,flood_zone,5,4,1.0402126220329893,carry over
+motor,freezing_days_lr,9,6,1.2593224099156106,adjust
+motor,fuel_type,3,3,1.1718268611056195,adjust
+motor,hail_days_lr,9,5,1.0248124797604083,carry over
+motor,household_size,7,6,1.0819588494107317,carry over
+motor,licence_points,4,0,,carry over
+motor,listed_building,1,1,1.2079263741397224,adjust
+motor,marital_status,4,4,1.107898780786747,adjust
+motor,mean_temperature_c_lr,9,5,1.0795084095283063,carry over
+motor,missed_payments_12m,7,1,1.0692770971207806,carry over
+motor,named_young_driver,1,1,1.0058913610167057,carry over
+motor,ncb_years,8,8,1.0486789269717076,carry over
+motor,new_business,1,1,1.2146810018387695,adjust
+motor,occupation,20,20,1.1262465045379517,adjust
+motor,overnight_parking,3,3,1.0289881296033994,carry over
+motor,payment_method,1,1,1.0031639570723538,carry over
+motor,previous_insurer,40,40,1.1005695707869383,adjust
+motor,prior_claims_5y,7,0,,carry over
+motor,property_age,9,9,1.107430244989126,adjust
+motor,property_type,3,3,1.067319099104061,weak (little effect in both)
+motor,rainfall_mm_lr,9,5,1.4604633515301675,refit on emerging
+motor,renewal_count,8,8,1.0300514125108917,carry over
+motor,roof_type,2,2,1.0923630148821488,carry over
+motor,seats,3,3,1.1265963127445495,adjust
+motor,soil_type,5,5,1.0642211761737939,carry over
+motor,solar_panels,1,1,1.0363782497566005,carry over
+motor,transmission,1,1,1.024852193493436,weak (little effect in both)
+motor,trees_within_5m,1,1,1.0236544344015726,weak (little effect in both)
+motor,urban_density,3,3,1.0167374234912496,carry over
+motor,vehicle_age,10,10,1.6692962402104357,refit on emerging
+motor,vehicle_use,2,2,1.0458734879237759,carry over
+motor,vehicle_value_group,9,9,1.1740588560051315,adjust
+motor,voluntary_excess,3,3,1.0193250424619935,carry over
+motor,wildfire_index_lr,9,2,1.6582179569995086,refit on emerging
+motor,wind_exposure_index_lr,9,9,1.1221427897897551,adjust
+motor,years_at_address,10,10,1.0320264967298305,carry over
+motor,years_licensed,9,9,1.1847684359851176,adjust

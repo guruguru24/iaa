@@ -1,0 +1,9 @@
+file,column,n_dev,n_emg,emg_only,dev_only
+addresses,region,12,6,"['E01', 'E02', 'E03', 'E04', 'E05', 'E06']","['R01', 'R02', 'R03', 'R04', 'R05', 'R06', 'R07', 'R08', 'R09', 'R10', 'R11', 'R12']"
+claims,loss_date,1473,760,[],"['2020-12-01', '2020-12-02', '2020-12-03', '2020-12-04', '2020-12-05', '2020-12-14', '2020-12-15', '2020-12-17', '2020-12-19', '2020-12-21', '2020-12-23', '2020-12-24']"
+claims,repairer_id,1000,987,[],"['RP0066', 'RP0080', 'RP0186', 'RP0330', 'RP0403', 'RP0473', 'RP0655', 'RP0670', 'RP0697', 'RP0698', 'RP0714', 'RP0877']"
+claims,report_date,1459,729,[],"['2021-01-02', '2021-01-03', '2021-01-04', '2021-01-05', '2021-01-06', '2021-01-07', '2021-01-08', '2021-01-09', '2021-01-10', '2021-01-11', '2021-01-12', '2021-01-13']"
+claims,third_party_id,41163,2713,"['TP0001679', 'TP0004596', 'TP0006783', 'TP0009766', 'TP0009940', 'TP0016695', 'TP0028977', 'TP0029637', 'TP0030585', 'TP0034695', 'TP0035478', 'TP0042913']","['TP0000122', 'TP0000129', 'TP0000220', 'TP0000503', 'TP0000504', 'TP0000614', 'TP0000688', 'TP0001510', 'TP0001524', 'TP0001593', 'TP0001641', 'TP0001760']"
+customers,occupation,20,80,"['Accountant ', 'Administrator ', 'Builder ', 'Care worker ', 'Chef ', 'Doctor ', 'Driver ', 'Electrician ', 'Engineer ', 'Hairdresser ', 'Manager ', 'Mechanic ']",[]
+policies_buildings,construction_type,11,4,"['BRK', 'MIX', 'STN', 'WOD']","['BRICK', 'Brick', 'NON_STANDARD', 'STONE', 'T', 'W', 'brick', 'non_standard', 'stone', 't', 'w']"
+test_buildings,construction_type,9,4,"['BRK', 'MIX', 'STN', 'WOD']","['BRICK', 'Brick', 'NON_STANDARD', 'STONE', 'W', 'brick', 'non_standard', 'stone', 'w']"

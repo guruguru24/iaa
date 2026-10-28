@@ -1,0 +1,9 @@
+item,developed,emerging,unit
+fixed_expense_per_policy,45.0,85.0,CU
+variable_expense,0.12,0.15,share of premium
+commission_direct,0.0,0.0,share of premium
+commission_comparison_site,0.1,,share of premium
+commission_broker,0.15,0.2,share of premium
+premium_tax,0.12,0.08,share of premium
+cat_reinsurance,0.06,0.12,share of property risk premium
+target_profit_margin,0.05,0.08,share of premium

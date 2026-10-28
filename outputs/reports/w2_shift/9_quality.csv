@@ -1,0 +1,7 @@
+line,kind,rows,dup_rows_excl_id,row_id_unique,exposure_ok,exposure_over_small,exposure_days_not_years,end_before_start,negative_numeric_cols,cols_with_nulls,si_gt_50x_median
+motor,train,47283,0,True,47029,207.0,47.0,0,[],"{'vehicle_age': 0.119, 'engine_size_cc': 0.122, 'overnight_parking': 0.12}",
+motor,test,90521,0,True,90521,,,0,[],"{'vehicle_age': 0.122, 'engine_size_cc': 0.122, 'overnight_parking': 0.12}",
+buildings,train,27447,0,True,27293,121.0,33.0,0,[],"{'days_unoccupied': 0.12, 'smoke_alarms': 0.119}",53.0
+buildings,test,52295,0,True,52295,,,0,[],"{'days_unoccupied': 0.119, 'smoke_alarms': 0.121}",104.0
+contents,train,34566,0,True,34366,166.0,34.0,0,[],"{'security_level': 0.123, 'high_value_items': 0.118}",57.0
+contents,test,66247,0,True,66247,,,0,[],"{'security_level': 0.122, 'high_value_items': 0.12}",135.0

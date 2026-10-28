@@ -1,0 +1,14 @@
+file,status,rows_dev,rows_emg,added,removed,dtype_changed
+addresses,both,575983.0,136914.0,[],[],[]
+claims,both,163150.0,9258.0,[],[],[]
+customers,both,545240.0,135856.0,['gender'],"['credit_band', 'date_of_birth']",[]
+expenses,emerging only,,,,,
+policies_buildings,both,707726.0,27447.0,['policyholder_age_band'],['policyholder_age'],[]
+policies_contents,both,721617.0,34566.0,['policyholder_age_band'],['policyholder_age'],[]
+policies_motor,both,979968.0,47283.0,['driver_age_band'],"['annual_mileage', 'driver_age', 'telematics_opt_in', 'telematics_score']",[]
+reference_policies,emerging only,,,,,
+sample_submission,both,626639.0,209063.0,[],[],[]
+test_buildings,both,184155.0,52295.0,['policyholder_age_band'],['policyholder_age'],[]
+test_contents,both,187498.0,66247.0,['policyholder_age_band'],['policyholder_age'],[]
+test_motor,both,254986.0,90521.0,['driver_age_band'],"['annual_mileage', 'driver_age', 'telematics_opt_in', 'telematics_score']",[]
+weather,both,2879915.0,410742.0,[],[],[]

@@ -1,0 +1,3 @@
+line,kind,column,raw_levels,normalised_levels,examples
+customers,-,occupation,80,40,"['Retired', 'Student', 'retired', 'student', 'Retired ', 'Care worker', 'Nurse', 'Teacher', 'Administrator', 'Hairdresser']"
+customers,-,surname,600,600,"['Surname503', 'Surname361', 'Surname042', 'Surname238', 'Surname272', 'Surname085', 'Surname447', 'Surname330', 'Surname081', 'Surname095']"
