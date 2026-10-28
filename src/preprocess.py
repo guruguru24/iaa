@@ -15,7 +15,14 @@ LEAKAGE_COLS = ["renewal_decision"]  # outcome after the period, train only (DQ1
 # construction_type: official levels are brick, stone, timber, non-standard. 'T' appears only in 2021-22 and 'W'
 # only in 2023-24 with matching volumes -> timber relabelled (Timber -> Wood). Approved G2, decision #4 (DQ11).
 CONSTRUCTION_MAP = {"brick": "brick", "stone": "stone", "non_standard": "non_standard", "timber": "timber",
-                    "w": "timber", "t": "timber"}
+                    "w": "timber", "t": "timber",
+                    # emerging codes (data_description Part C2; decision #26): MIX = mixed or non-standard
+                    "brk": "brick", "stn": "stone", "wod": "timber", "mix": "non_standard"}
+
+# Occupation levels in the developed market; emerging free text maps onto these (decision #26)
+DEV_OCCUPATIONS = ["Accountant", "Administrator", "Builder", "Care worker", "Chef", "Doctor", "Driver", "Electrician",
+                   "Engineer", "Hairdresser", "Manager", "Mechanic", "Nurse", "Retail assistant", "Retired",
+                   "Sales representative", "Software developer", "Student", "Teacher", "Unemployed"]
 
 
 def fix_exposure(df: pd.DataFrame) -> pd.DataFrame:
@@ -46,6 +53,36 @@ def fix_construction_type(df: pd.DataFrame, mapping: dict = CONSTRUCTION_MAP) ->
     out["construction_type_raw"] = out["construction_type"]
     key = out["construction_type"].str.strip().str.lower()
     out["construction_type"] = key.map(mapping).fillna("other").where(key.notna())
+    return out
+
+
+def clean_occupation(s: pd.Series) -> tuple[pd.Series, pd.Series]:
+    """Free-text occupation -> (developed occupation level, self_employed flag).
+
+    Rule (emerging data): strip spaces, ignore case, a leading 'Self-employed ' becomes the flag; anything not in the
+    developed list -> 'other'. Missing stays missing (flag missing too).
+    """
+    norm = s.astype("object").where(s.notna()).map(lambda v: v.strip().lower() if isinstance(v, str) else v)
+    se = norm.map(lambda v: v.startswith("self-employed ") if isinstance(v, str) else None)
+    base = norm.map(lambda v: v[len("self-employed "):] if isinstance(v, str) and v.startswith("self-employed ") else v)
+    lookup = {o.lower(): o for o in DEV_OCCUPATIONS}
+    occ = base.map(lambda v: lookup.get(v, "other") if isinstance(v, str) else None)
+    return occ, se
+
+
+def clean_customers(customers: pd.DataFrame) -> pd.DataFrame:
+    """Normalise occupation; add `self_employed` only when the data has self-employed entries (developed has none,
+    so Week 1 inputs stay byte-identical)."""
+    if "occupation" not in customers:
+        return customers
+    out = customers.copy()
+    occ, se = clean_occupation(out["occupation"])
+    out["occupation_raw"] = out["occupation"]
+    out["occupation"] = occ
+    if se.fillna(False).astype(bool).any():
+        out["self_employed"] = se
+    if out["occupation"].equals(customers["occupation"]):
+        out = out.drop(columns="occupation_raw")
     return out
 
 

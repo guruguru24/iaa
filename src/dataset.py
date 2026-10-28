@@ -12,7 +12,7 @@ from src.development import apply_to_rows, developed_table, development_factors,
 from src.eda import claim_frame, line_frame
 from src.features import add_features, weather_features
 from src.history import history_features, policy_customer_map
-from src.preprocess import preprocess, sum_insured_reference
+from src.preprocess import clean_customers, preprocess, sum_insured_reference
 from src.trend import row_capped_target
 
 
@@ -21,7 +21,7 @@ def onlevel_factor(policy_year: pd.Series, to_year: int, annual_trend: float) ->
 
 
 def reference_tables(market: str = "w1") -> dict:
-    return {"addresses": load_table("addresses", market), "customers": load_table("customers", market),
+    return {"addresses": load_table("addresses", market), "customers": clean_customers(load_table("customers", market)),
             "weather": load_table("weather", market), "policy_customer": policy_customer_map(market)}
 
 

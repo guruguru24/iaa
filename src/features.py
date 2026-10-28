@@ -15,7 +15,7 @@ import pandas as pd
 import scipy.sparse as sp
 
 ID_COLS = ["row_id", "policy_id", "customer_id", "address_id"]
-ALWAYS_EXCLUDE = ["renewal_decision", "customer_service_contacts", "written_premium", "discount_applied",
+ALWAYS_EXCLUDE = ["renewal_decision", "customer_service_contacts", "written_premium", "discount_applied", "occupation_raw",
                   "period_start", "period_end", "line", "exposure", "exposure_raw", "exposure_fixed",
                   "sum_insured_raw", "sum_insured_fixed", "construction_type_raw", "compulsory_excess"]
 LOW_RATIONALE = ["surname", "email_domain", "marketing_segment", "campaign_code", "branch_id", "vehicle_colour",

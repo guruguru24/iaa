@@ -45,3 +45,22 @@ def test_preprocess_drops_leakage_and_keeps_rows():
     assert len(out) == 4
     with pytest.raises(KeyError):
         preprocess(_df(), "contents", {})
+
+
+def test_emerging_construction_codes():
+    df = _df().assign(construction_type=["BRK", "STN", "WOD", "MIX"])
+    assert fix_construction_type(df)["construction_type"].tolist() == ["brick", "stone", "timber", "non_standard"]
+
+
+def test_clean_occupation_free_text():
+    from src.preprocess import clean_customers, clean_occupation
+    s = pd.Series(["Accountant", "accountant", "Accountant ", "Self-employed nurse", "Self-employed retired", "Astronaut", None])
+    occ, se = clean_occupation(s)
+    assert occ.tolist()[:6] == ["Accountant", "Accountant", "Accountant", "Nurse", "Retired", "other"]
+    assert pd.isna(occ.iloc[6]) and se.tolist()[:6] == [False, False, False, True, True, False] and pd.isna(se.iloc[6])
+    # developed-style clean data: unchanged, no new columns (Week 1 reproducibility)
+    dev = pd.DataFrame({"customer_id": ["a", "b"], "occupation": ["Nurse", None]})
+    out = clean_customers(dev)
+    assert list(out.columns) == ["customer_id", "occupation"] and out["occupation"].tolist()[0] == "Nurse"
+    emg = clean_customers(pd.DataFrame({"customer_id": ["a", "b"], "occupation": ["Self-employed chef", "chef "]}))
+    assert emg["occupation"].tolist() == ["Chef", "Chef"] and emg["self_employed"].tolist() == [True, False]
