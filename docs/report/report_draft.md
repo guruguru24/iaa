@@ -18,7 +18,7 @@ to `logs/` or `outputs/reports/`. Graded scope: first 5 pages.*
   2023 → validate 2024 on emerging): motor 0.082, buildings 0.102, contents 0.102; public 0.15691 (private pending).
 - **Office premium.** For the 20 emerging reference policies, the office premium built from our risk premium is a
   median 2.7× the current written premium, mostly because of the emerging expense structure (§5).
-- **AI workflow.** Claude Code built and challenged every step; the human owner signed off 37 logged decisions at six
+- **AI workflow.** Claude Code built and challenged every step; the human owner signed off 38 logged decisions at six
   review gates. Several AI errors were caught by tests, validation and the official data description before they
   reached a submission (§3).
 
@@ -125,8 +125,8 @@ The table leaves out four smaller sources of uncertainty:
 ## 3. Effective use of AI
 **Workflow.** The AI (Claude Code) drafted code, checks and analyses. CLAUDE.md instructed it to act as a
 challenger, to stop at six human gates (target, data fixes, assumptions, model choice, submission, Week 2
-adaptation), and to log every contribution (`logs/ai_usage_log.md`, 16 entries; `logs/decision_log.md`,
-37 decisions).
+adaptation), and to log every contribution (`logs/ai_usage_log.md`, 17 entries; `logs/decision_log.md`,
+38 decisions).
 
 **Notable cases.**
 1. *AI error, caught by documentation:* the AI inferred claims were gross of excess and subtracted it again; the
