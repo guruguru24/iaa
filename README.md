@@ -37,7 +37,7 @@ office premium build-up: `outputs/reports/w2_office_premium*.{csv,md}`.
 ## Reproduce
 Data are not in the repo: put the official `developed` folder in `data/raw/w1/` and `emerging` in `data/raw/w2/`.
 ```bash
-python -m venv .venv && .venv\Scriptsctivate        # Windows (source .venv/bin/activate elsewhere)
+python -m venv .venv && .venv\Scripts\activate   # Windows (source .venv/bin/activate elsewhere)
 pip install -r requirements.txt
 pytest -q                                              # 65 tests
 python -m src.pipeline --market w1 --model blend       # Week 1 final model (b3 config) -> outputs/submissions/
