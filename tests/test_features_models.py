@@ -251,3 +251,23 @@ def test_weight_col_multiplies_weights():
     df = pd.DataFrame({"policy_year": [2023, 2024], "exposure": [1.0, 0.5], "m": [5.0, 1.0]})
     assert fit_weights(df, weight_col="m").tolist() == [5.0, 0.5]
     assert fit_weights(df, weight_col="m", recency=0.5, ref_year=2024).tolist() == [2.5, 0.5]
+
+
+def test_credibility_factor_and_seed_average():
+    from src.models import CredibilityFactor, seed_average
+    rng = np.random.default_rng(0)
+    n = 30_000
+    df = pd.DataFrame({"region": rng.choice(["E01", "E02", "E03"], n), "seg": rng.choice(["a", "b"], n),
+                       "exposure": 1.0, "policy_year": 2023, "policy_id": np.arange(n)})
+    true = np.select([df.region == "E01", df.region == "E02"], [1.5, 1.0], 0.7) * 100
+    y = np.where(rng.random(n) < 0.1, rng.gamma(2.0, true / 0.2), 0.0)
+    base = np.full(n, 100.0)
+    cf = CredibilityFactor("region", k=50).fit(df, y, base)
+    assert cf.factors_["E03"] < cf.factors_["E02"] < cf.factors_["E01"]
+    adj = cf.apply(df, base)
+    assert adj.sum() == pytest.approx(base.sum()) and evaluate(y, adj)["d2"] > evaluate(y, base)["d2"]
+    assert cf.apply(df.head(2).assign(region=["E99", None]), [1.0, 1.0]).tolist() == [1.0, 1.0]
+    df["target"] = y
+    from src.models import LGBMTweedie
+    f = seed_average(lambda s: LGBMTweedie(["seg", "region"], seed=s, params={"min_child_samples": 100}, n_estimators=30), df, "target", [1, 2, 3])
+    assert np.all(np.isfinite(f(df.head(10))))

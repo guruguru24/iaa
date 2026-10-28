@@ -252,3 +252,39 @@ class FreqSevGBM:
 
     def predict(self, df: pd.DataFrame, exposure: str = "exposure") -> np.ndarray:
         return self._raw(df, exposure) * self.loading_
+
+
+class CredibilityFactor:
+    """Credibility-weighted multiplier by the levels of one categorical column (e.g. emerging region E01-E06).
+
+    factor_l = Z_l x (A/E_l / A/E_all) + (1 - Z_l), Z_l = n_l / (n_l + k) on rows-with-claim counts, then rescaled so the
+    base total on the fitting rows is unchanged. Unseen or missing levels get 1.0.
+    """
+
+    def __init__(self, col: str, k: float = 200.0):
+        self.col, self.k = col, k
+
+    def fit(self, df: pd.DataFrame, actual, pred):
+        actual, pred = np.asarray(actual, float), np.asarray(pred, float)
+        lv = df[self.col].astype("object").where(df[self.col].notna(), "__missing__").to_numpy()
+        overall = actual.sum() / pred.sum()
+        self.factors_ = {}
+        for level in pd.unique(lv):
+            m = lv == level
+            n = (actual[m] > 0).sum()
+            z = n / (n + self.k)
+            self.factors_[level] = z * (actual[m].sum() / pred[m].sum() / overall) + (1 - z)
+        f = pd.Series(lv).map(self.factors_).to_numpy()
+        scale = pred.sum() / (pred * f).sum()
+        self.factors_ = {k_: v * scale for k_, v in self.factors_.items()}
+        return self
+
+    def apply(self, df: pd.DataFrame, pred) -> np.ndarray:
+        lv = df[self.col].astype("object").where(df[self.col].notna(), "__missing__")
+        return np.asarray(pred, float) * lv.map(self.factors_).fillna(1.0).to_numpy()
+
+
+def seed_average(make, df: pd.DataFrame, target: str, seeds, **fit_kw):
+    """Fit one model per seed (`make(seed)` returns an unfitted model); return a predict function averaging them."""
+    models = [make(s).fit(df, target, **fit_kw) for s in seeds]
+    return lambda d: np.mean([m.predict(d) for m in models], axis=0)
