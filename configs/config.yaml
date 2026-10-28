@@ -38,6 +38,7 @@ w2:   # Week 2 emerging market, gate G6 (decision #27)
   developed_years: [2021, 2022, 2023, 2024]
   model_by_line: {motor: C1, buildings: C4, contents: C1}   # C1 = harmonised developed blend x emerging level; C4 = joint fit
   emerging_weight: 5.0                                      # C4 weight on emerging rows
+  c4_level_credibility: 0.5                                 # C4 level x (Z * emerging A/E + 1 - Z), decision #28
   development: borrowed_from_developed                      # same reporting delays / open shares (DQ22); no BI override
   trend: same_as_developed_central                          # provisional, G3
   new_business_loading: {low: 0.9, central: 1.0, high: 1.25}

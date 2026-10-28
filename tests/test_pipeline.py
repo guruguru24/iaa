@@ -39,3 +39,9 @@ def test_common_features_exclude_market_specific():
     dev = pd.DataFrame({"region": ["R01"], "credit_band": ["A"], "driver_age_band": ["17-24"], "ncb_years": [3]})
     emg = pd.DataFrame({"region": ["E01"], "gender": ["F"], "driver_age_band": ["17-24"], "ncb_years": [3]})
     assert common_features(dev, emg) == ["driver_age_band", "ncb_years"]
+
+
+def test_credibility_level():
+    from src.pipeline_w2 import credibility_level
+    assert credibility_level(1.2336, 0.5) == pytest.approx(1.1168)
+    assert credibility_level(1.2336, 0.0) == 1.0 and credibility_level(1.2336, 1.0) == pytest.approx(1.2336)

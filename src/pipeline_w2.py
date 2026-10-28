@@ -39,6 +39,11 @@ def onlevel(df: pd.DataFrame, cap: int, to_year: int, g: float) -> pd.DataFrame:
     return df.assign(target_dev=df["target_dev"] * on, **{f"target_dev_cap{cap}": df[f"target_dev_cap{cap}"] * on})
 
 
+def credibility_level(ae: float, z: float) -> float:
+    """Level adjustment Z x A/E + (1 - Z): Z = 0 keeps the model level, Z = 1 matches the emerging actuals."""
+    return z * ae + (1.0 - z)
+
+
 def nb_loading(pred: np.ndarray, new_business: pd.Series, factor: float) -> np.ndarray:
     """Multiply new-business rows by `factor` (G6 sensitivity)."""
     return np.where(new_business.fillna(False).astype(bool).to_numpy(), pred * factor, pred)
@@ -80,10 +85,14 @@ def fit_line(line: str, cfg: dict, data: dict) -> dict:
         glm = TweedieGLM(jf).fit(j, capped, loading_target="target_dev", weight_col="w_mult")
         gbm = _gbm(jf, spec, cfg["seed"], stop="policy").fit(j, capped, loading_target="target_dev", weight_col="w_mult")
         pred = lambda d: 0.5 * glm.predict(d.assign(market="emerging")) + 0.5 * gbm.predict(d.assign(market="emerging"))
-        p = pred(te)
-        # the joint fit is balanced on both markets together: report (not apply) the emerging A/E as a level check
-        info["emerging_ae_in_sample"] = float(emg["target_dev"].sum() / pred(emg).sum())
-        info["level_by_year"] = {int(y): float(d["target_dev"].sum() / pred(d).sum()) for y, d in emg.groupby("policy_year")}
+        # the joint fit is balanced on both markets together, so its emerging level leans to developed: move it part of
+        # the way to emerging's own actuals with credibility Z (decision #28)
+        ae = float(emg["target_dev"].sum() / pred(emg).sum())
+        z = float(w2.get("c4_level_credibility", 0.0))
+        level = credibility_level(ae, z)
+        p = pred(te) * level
+        info.update({"emerging_ae_in_sample": ae, "c4_level_credibility": z, "emerging_level": level})
+        info["level_by_year"] = {int(y): float(d["target_dev"].sum() / pred(d).sum()) for y, d in emg.groupby("policy_year")}   # before Z
         del j
     else:
         raise ValueError(f"unknown method {method}")
