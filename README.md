@@ -33,6 +33,9 @@ office premium build-up: `outputs/reports/w2_office_premium*.{csv,md}`.
 - Every decision, with alternatives and evidence: `logs/decision_log.md` (submissions table at the end)
 - Every AI contribution, how it was verified and whether it was accepted: `logs/ai_usage_log.md`
 - Data issues and their resolution: `logs/data_quality_log.md`; assumptions: `logs/assumptions_register.md`
+- Commit hashes: the history was rewritten once before publishing (author e-mail only; every file tree is
+  unchanged). Hashes quoted in file names and logs (e.g. `82f4d73`) are the original ones; `docs/commit_map.csv`
+  maps each to its published commit.
 
 ## Reproduce
 Data are not in the repo: put the official `developed` folder in `data/raw/w1/` and `emerging` in `data/raw/w2/`.
