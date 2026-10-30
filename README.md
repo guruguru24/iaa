@@ -22,11 +22,11 @@ home buildings and home contents, then adapts to a new market (Week 2), with an 
 | | Validation D² (temporal) | Leaderboard |
 |---|---|---|
 | Week 1 (developed) | 0.139 pooled (train 2021–23 → 2024) | private 0.13363 (rank 30), public 0.12480 |
-| Week 2 (emerging) | motor 0.082, buildings 0.102, contents 0.102 (train 2023 → 2024) | public 0.15691 (private pending) |
+| Week 2 (emerging) | motor 0.082, buildings 0.102, contents 0.102 (train 2023 → 2024) | public 0.15691 (private published after the close) |
 
 Final files: Week 1 `outputs/submissions/w1_blend_20261024_0007_d4aa68f.csv` + `candidates/w1_final_b3_20261024_0024.csv`
 (tag `w1-final`); Week 2 `outputs/submissions/w2_20261028_2009_82f4d73.csv` + `candidates/w2_nb_high_20261028_1800.csv`
-(tag `w2-final`). Write-up: `docs/report/report_draft.md`; video script: `docs/report/video_script.md`;
+(tag `w2-final`). Write-up: `docs/report/report.pdf` (source `docs/report/report_draft.md`); video script: `docs/report/video_script.md`;
 office premium build-up: `outputs/reports/w2_office_premium*.{csv,md}`.
 
 ## Where to look (evidence)

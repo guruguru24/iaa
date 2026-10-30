@@ -1,6 +1,6 @@
-# Video script — 5 minutes (graded scope), draft v0.2
+# Video script — 5 minutes (graded scope), final v1.0
 
-Target pace ≈ 140 words/min (~700 words). Numbers match `docs/report/report_draft.md` v0.4. ⟨private⟩ = fill in when the Week 2 private score is published.
+Target pace ≈ 140 words/min (~700 words). Numbers match `docs/report/report_draft.md` v1.0.
 
 | Time | Screen | Narration |
 |---|---|---|

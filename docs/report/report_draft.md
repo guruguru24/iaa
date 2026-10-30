@@ -1,6 +1,6 @@
 # Actuarial Pricing Across Markets with AI Assistance — Solo entry (Suguru Fujita)
 
-*Draft v0.4 (Week 1 final results and Week 2 build in; Week 2 private score pending). Every number below is traceable
+*Final version (v1.0, submitted 2026-10-30). The Week 2 private score is published after the close. Every number below is traceable
 to `logs/` or `outputs/reports/`. Graded scope: first 5 pages.*
 
 ## 1. Executive summary
@@ -15,7 +15,7 @@ to `logs/` or `outputs/reports/`. Graded scope: first 5 pages.*
 - **Results.** Week 1 temporal validation (train 2021–23 → validate 2024, pooled): constant 0.082 → GLM 0.137 →
   blend 0.139; **private D² 0.13363, rank 30** (public 0.12480). The private score was close to our temporal-validation
   estimate, consistent with selecting models on validation rather than on the leaderboard. Week 2 validation (train
-  2023 → validate 2024 on emerging): motor 0.082, buildings 0.102, contents 0.102; public 0.15691 (private pending).
+  2023 → validate 2024 on emerging): motor 0.082, buildings 0.102, contents 0.102; public 0.15691 (private score published after the close).
 - **Office premium.** For the 20 emerging reference policies, the office premium built from our risk premium is a
   median 2.7× the current written premium, mostly because of the emerging expense structure (§5).
 - **AI workflow.** Claude Code built and challenged every step; the human owner signed off 38 logged decisions at six
